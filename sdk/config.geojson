@@ -1,0 +1,377 @@
+{
+  "partnerId": "NjlhZmZlMmQzOTIxNjU3YTkwN2RhY2E2",
+  "partnerLogo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/5cc08641-0f0b-4d73-bbaa-45d6e2a04fcd-robert-dyas%20%281%29.svg",
+  "country": "GB",
+  "language": "en",
+  "currency": "GBP",
+  "domains": ["robertdyas.co.uk", "www.robertdyas.co.uk"],
+  "apiUrl": "https://api.rewardsbag.com",
+  "inline": {
+    "enabled": false,
+    "template": "https://cdn.rewardsbag.com/templates/robertdyas-co-uk-inline.html",
+    "css": "https://cdn.rewardsbag.com/templates/robertdyas-co-uk-inline.css",
+    "pageContext": {
+      "urlPatterns": ["new-checkout/review"]
+    },
+    "requiredSelectors": [
+      {
+        "selector": "reviewPageWrapper",
+        "required": true,
+        "waitFor": 3000
+      }
+    ],
+    "collectEmail": {
+      "enabled": true,
+      "method": "selector",
+      "selector": "#customer-email"
+    },
+    "rewards": []
+  },
+  "popup": {
+    "enabled": true,
+    "template": "https://cdn.rewardsbag.com/templates/robertdyas-co-uk-popup.html",
+    "css": "https://cdn.rewardsbag.com/templates/robertdyas-co-uk-popup.css",
+    "pageContext": {
+      "urlPatterns": ["checkout/onepage/success"]
+    },
+    "autoShow": false,
+    "delay": 500,
+    "collectEmail": {
+      "enabled": true,
+      "method": "dataTag",
+      "dataAttribute": "data-customer-email"
+    },
+    "defaultLocale": "en",
+    "locales": {
+      "en": {
+        "orderLine": "Thank you for your order!",
+        "cta": "Claim Now",
+        "secondaryCta": "No thanks",
+        "terms": {
+          "header": "Terms & Conditions",
+          "show": "Show terms",
+          "hide": "Hide terms",
+          "toggleAriaLabel": "Toggle terms and conditions"
+        },
+        "poweredBy": "Powered by RewardsBag",
+        "privacyPolicy": "Privacy Policy",
+        "closeAriaLabel": "Close rewards offer",
+        "openWidgetAriaLabel": "Open rewards",
+        "slider": {
+          "prevAriaLabel": "Previous reward",
+          "nextAriaLabel": "Next reward",
+          "dotAriaLabel": "Go to reward {{index}}"
+        }
+      },
+      "de": {
+        "orderLine": "Vielen Dank für Ihre Bestellung!",
+        "cta": "Jetzt sichern",
+        "secondaryCta": "Nein danke",
+        "terms": {
+          "header": "Allgemeine Geschäftsbedingungen",
+          "show": "AGB anzeigen",
+          "hide": "AGB ausblenden",
+          "toggleAriaLabel": "AGB ein- oder ausblenden"
+        },
+        "poweredBy": "Bereitgestellt von RewardsBag",
+        "privacyPolicy": "Datenschutz",
+        "closeAriaLabel": "Angebot schließen",
+        "openWidgetAriaLabel": "Prämien öffnen",
+        "slider": {
+          "prevAriaLabel": "Vorherige Prämie",
+          "nextAriaLabel": "Nächste Prämie",
+          "dotAriaLabel": "Zu Prämie {{index}} wechseln"
+        }
+      }
+    },
+    "theme": {
+      "version": 1,
+      "overlay": {
+        "backgroundColor": "rgba(0, 0, 0, 0.5)",
+        "zIndex": 999999
+      },
+      "widgetContainer": {
+        "width": "100%",
+        "maxWidth": "560px",
+        "minWidth": "0",
+        "margin": "0",
+        "padding": { "top": "0", "right": "0", "bottom": "0", "left": "0" },
+        "backgroundColor": "#ffffff",
+        "borderRadius": "12px",
+        "borderWidth": "0",
+        "borderStyle": "solid",
+        "borderColor": "transparent",
+        "boxShadow": "0 8px 32px rgba(0, 0, 0, 0.12)",
+        "overflow": "hidden"
+      },
+      "widgetImageContainer": {
+        "padding": { "top": "0", "right": "0", "bottom": "0", "left": "0" },
+        "backgroundColor": "transparent",
+        "minHeight": "0",
+        "maxHeight": "none",
+        "borderRadius": "0",
+        "overflow": "hidden"
+      },
+      "widgetImage": {
+        "objectFit": "cover",
+        "width": "100%",
+        "height": "auto",
+        "maxHeight": "none",
+        "aspectRatio": "auto"
+      },
+      "widgetContentContainer": {
+        "padding": { "top": "20px", "right": "24px", "bottom": "24px", "left": "24px" },
+        "gap": "12px",
+        "alignItems": "stretch",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      },
+      "hostLogo": {
+        "padding": { "top": "0", "right": "0", "bottom": "8px", "left": "0" },
+        "width": "auto",
+        "height": "32px",
+        "maxWidth": "160px",
+        "maxHeight": "40px",
+        "borderRadius": "0",
+        "objectFit": "contain",
+        "alignSelf": "center",
+        "backgroundColor": "transparent"
+      },
+      "rewardLogo": {
+        "padding": { "top": "0", "right": "0", "bottom": "12px", "left": "0" },
+        "width": "auto",
+        "height": "48px",
+        "maxWidth": "200px",
+        "maxHeight": "56px",
+        "borderRadius": "8px",
+        "objectFit": "contain",
+        "alignSelf": "center",
+        "backgroundColor": "transparent"
+      },
+      "orderLine": {
+        "fontFamily": "inherit",
+        "fontSize": "14px",
+        "fontWeight": "400",
+        "lineHeight": "1.4",
+        "letterSpacing": "normal",
+        "textTransform": "none",
+        "color": "#666666",
+        "textDecoration": "none",
+        "textUnderlineOffset": "2px",
+        "margin": { "top": "0", "right": "0", "bottom": "8px", "left": "0" },
+        "textAlign": "center"
+      },
+      "headline": {
+        "fontFamily": "inherit",
+        "fontSize": "20px",
+        "fontWeight": "700",
+        "lineHeight": "1.25",
+        "letterSpacing": "normal",
+        "textTransform": "none",
+        "color": "#111111",
+        "textDecoration": "none",
+        "textUnderlineOffset": "2px",
+        "margin": { "top": "0", "right": "0", "bottom": "12px", "left": "0" },
+        "textAlign": "center",
+        "maxLines": 0
+      },
+      "rewardDescription": {
+        "fontFamily": "inherit",
+        "fontSize": "14px",
+        "fontWeight": "400",
+        "lineHeight": "1.5",
+        "color": "#333333",
+        "textAlign": "center",
+        "margin": { "top": "0", "right": "0", "bottom": "16px", "left": "0" },
+        "linkColor": "#0066cc",
+        "linkTextDecoration": "underline",
+        "linkFontWeight": "400"
+      },
+      "ctaHelperText": {
+        "fontFamily": "inherit",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "lineHeight": "1.4",
+        "color": "#666666",
+        "textDecoration": "none",
+        "textAlign": "center",
+        "margin": { "top": "0", "right": "0", "bottom": "8px", "left": "0" }
+      },
+      "cta": {
+        "width": "100%",
+        "minHeight": "48px",
+        "padding": { "top": "12px", "right": "20px", "bottom": "12px", "left": "20px" },
+        "fontFamily": "inherit",
+        "fontSize": "16px",
+        "fontWeight": "600",
+        "lineHeight": "1.2",
+        "textAlign": "center",
+        "color": "#ffffff",
+        "backgroundColor": "#111111",
+        "borderWidth": "0",
+        "borderStyle": "solid",
+        "borderColor": "transparent",
+        "borderRadius": "8px",
+        "hoverBackgroundColor": "#333333",
+        "hoverColor": "#ffffff",
+        "activeBackgroundColor": "#000000",
+        "focusRingColor": "rgba(0, 102, 204, 0.45)",
+        "focusRingWidth": "2px",
+        "disabledOpacity": "0.5"
+      },
+      "secondaryCta": {
+        "width": "100%",
+        "minHeight": "44px",
+        "padding": { "top": "10px", "right": "16px", "bottom": "10px", "left": "16px" },
+        "fontFamily": "inherit",
+        "fontSize": "14px",
+        "fontWeight": "500",
+        "lineHeight": "1.2",
+        "textAlign": "center",
+        "color": "#666666",
+        "backgroundColor": "transparent",
+        "borderWidth": "0",
+        "borderStyle": "solid",
+        "borderColor": "transparent",
+        "borderRadius": "8px",
+        "hoverColor": "#333333",
+        "hoverBackgroundColor": "rgba(0, 0, 0, 0.04)",
+        "focusRingColor": "rgba(0, 102, 204, 0.35)",
+        "focusRingWidth": "2px"
+      },
+      "terms": {
+        "headerFontSize": "14px",
+        "headerFontWeight": "600",
+        "headerColor": "#111111",
+        "headerTextDecoration": "none",
+        "headerMargin": { "top": "8px", "right": "0", "bottom": "8px", "left": "0" },
+        "chevronColor": "#666666",
+        "bodyFontSize": "12px",
+        "bodyFontWeight": "400",
+        "bodyLineHeight": "1.45",
+        "bodyColor": "#555555",
+        "bodyMaxHeight": "160px",
+        "bodyPadding": { "top": "0", "right": "0", "bottom": "0", "left": "0" },
+        "bodyBackgroundColor": "transparent",
+        "linkColor": "#0066cc",
+        "linkTextDecoration": "underline",
+        "linkHoverColor": "#004499"
+      },
+      "footerLinks": {
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "lineHeight": "1.4",
+        "color": "#888888",
+        "linkColor": "#0066cc",
+        "linkTextDecoration": "underline",
+        "separatorColor": "#cccccc",
+        "margin": { "top": "16px", "right": "0", "bottom": "0", "left": "0" },
+        "textAlign": "center"
+      },
+      "closeButton": {
+        "position": "absolute",
+        "top": "12px",
+        "right": "12px",
+        "width": "40px",
+        "height": "40px",
+        "padding": { "top": "0", "right": "0", "bottom": "0", "left": "0" },
+        "borderRadius": "9999px",
+        "backgroundColor": "rgba(255, 255, 255, 0.9)",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgba(0, 0, 0, 0.08)",
+        "iconColor": "#333333",
+        "iconSize": "20px",
+        "hoverBackgroundColor": "#f2f2f2",
+        "hoverIconColor": "#111111",
+        "focusRingColor": "rgba(0, 102, 204, 0.45)",
+        "focusRingWidth": "2px",
+        "zIndex": 1
+      },
+      "slider": {
+        "margin": { "top": "12px", "right": "0", "bottom": "8px", "left": "0" },
+        "counter": {
+          "fontSize": "12px",
+          "fontWeight": "600",
+          "color": "#333333",
+          "inactiveColor": "#999999",
+          "separatorColor": "#cccccc"
+        },
+        "dots": {
+          "gap": "8px",
+          "size": "8px",
+          "inactiveColor": "#cccccc",
+          "activeColor": "#111111",
+          "activeBorderWidth": "0",
+          "activeBorderColor": "transparent"
+        },
+        "arrows": {
+          "size": "36px",
+          "iconColor": "#333333",
+          "backgroundColor": "rgba(255, 255, 255, 0.95)",
+          "borderRadius": "9999px",
+          "borderWidth": "1px",
+          "borderColor": "rgba(0, 0, 0, 0.08)",
+          "disabledOpacity": "0.35"
+        }
+      },
+      "loadingSpinner": {
+        "overlayBackgroundColor": "rgba(0, 0, 0, 0.4)",
+        "dotColor": "#000000"
+      },
+      "safeArea": {
+        "paddingBottom": "env(safe-area-inset-bottom, 0px)"
+      }
+    },
+    "rewards": [
+      {
+        "id": "69d50fec6ac919134463e99e",
+        "ctaUrl": "https://click.linksynergy.com/fs-bin/click?id=E0jTpTv7I9w&offerid=1938404.14&type=3&subid=0",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/81ca02fb-8cc6-4f0b-971e-531322decc06-Post-Transaction%20Pop%20Up%20%28Mobile%29%20350%20x%20200.jpg",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/f9bd72c8-e5c5-45a5-993e-edc5f5c6ec59-Post-Transaction%20Pop%20Up%20%28Desktop%29%20600%20x%20250.jpg",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/05158450-4888-4dc2-b06c-e5c71e40b686-logo%20500x500%20%281%29.png",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "You've earned a £15 cashback bonus!",
+            "description": "<p>Sign up to Rakuten for free and earn cashback at over 500 retailers. Spend £20 at any partner brand, get £15 straight back.</p>",
+            "ctaHelperText": "No card details needed. Takes less than 1 minute.",
+            "terms": "<p>Offer may be modified at any time. Not combinable with other offers, including the Referral Bonuses. Limited to one Special Bonus per eligible member. Qualify for the Special Bonus by making one or multiple Qualifying Purchase(s) totalling the required minimum spend of £20 (excl. VAT and fees) by the end of the promotion period (90 days) from the moment of registration. A \"Qualifying Purchase\" means a purchase that earns Cashback through <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"http://Rakuten.co.uk\">Rakuten.co.uk</a>, the Rakuten mobile app or browser extension, and excludes any Cashback awarded as courtesy or not reported by the Affiliate Brand or Network.&nbsp;</p>",
+            "cta": "Get £15 cashback"
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "<p>Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.</p>",
+            "ctaHelperText": "Keine Kartendaten erforderlich. Dauert weniger als 1 Minute.",
+            "terms": "<p>Angebotsbedingungen (Übersetzung Platzhalter).</p>",
+            "cta": "Cashback holen"
+          }
+        }
+      },
+      {
+        "id": "69c511fd99af716d651175c6",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=3932&awinaffid=2775334&ued=https%3A%2F%2Fwww.theaa.com%2Fbreakdown-cover%2Fsales%2Fcover%3Fsrcc%3DWE115",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/3ad0d42a-2956-4500-ad76-be9056f9217d-NEW%20AA%20Van%20side%20on%20female%20patrol%204%20NIGHT-2%20%281%29%20350x200.jpg",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/83540f7d-6d79-4482-9d8d-c9c893b2a281-600x250%20Family.jpg",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/7b3d49fe-1260-4418-a9fc-d14c9b21cb8f-AA%20Updated%20Logo.jpg",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "50% off breakdown cover from The AA",
+            "description": "<p>Before you head out, make sure your car’s covered too. Get 50% off AA Breakdown Cover and stay protected wherever you’re driving.</p><p>Offer valid on first year of annual cover (monthly prices may change with 45 days’ notice). Enter your details to reveal your discounted monthly/annual price.</p>",
+            "ctaHelperText": "Limited-time partner offer. Terms apply.",
+            "terms": "<p>Offer applies to new UK customers only (excl. Northern Ireland) and to the first year of annual cover across vehicle, single, joint and family levels. Excludes Parts &amp; Garage Cover, Key Cover, Commercial Use, and cannot be used with other offers. Prices may change on renewal, and the AA reserves the right to amend or withdraw the promotion at any time. To cancel AA breakdown cover, you can use their online chat service, log in to your 'My AA' account to cancel online, or call 0343 316 4444.</p>"
+          }
+        }
+      }
+    ]
+  },
+  "analytics": {
+    "enabled": true,
+    "endpoint": "https://api.rewardsbag.com/analytics",
+    "batchSize": 5,
+    "flushInterval": 5000
+  }
+}

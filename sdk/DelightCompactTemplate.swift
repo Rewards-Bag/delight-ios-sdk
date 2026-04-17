@@ -1,31 +1,35 @@
 import SwiftUI
 
 struct DelightCompactTemplate: View {
-    let decision: DelightDecisionResponse
+    let config: DelightConfigDTO
     let theme: DelightPopupTheme
-    let onPrimary: () -> Void
+    let onPrimary: (String?) -> Void
     let onDismiss: () -> Void
 
     var body: some View {
+        let reward = config.resolvedRewards.first
+        let rewardLocale = config.resolvedRewardLocale(for: reward)
+        let popupLocale = config.resolvedPopupLocale
+
         VStack(spacing: 10) {
-            Text(decision.content.title)
+            Text(rewardLocale?.headline ?? "Thanks for your order")
                 .font(.headline)
                 .multilineTextAlignment(.center)
 
-            if let subtitle = decision.content.subtitle {
+            if let subtitle = popupLocale?.orderLine {
                 Text(subtitle)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
-            Button(decision.content.primaryCta ?? "Continue") {
-                onPrimary()
+            Button(rewardLocale?.cta ?? popupLocale?.cta ?? "Continue") {
+                onPrimary(reward?.id)
             }
             .buttonStyle(.borderedProminent)
             .tint(theme.primary)
 
-            Button(decision.content.secondaryCta ?? "Dismiss") {
+            Button(popupLocale?.secondaryCta ?? "Dismiss") {
                 onDismiss()
             }
             .buttonStyle(.plain)

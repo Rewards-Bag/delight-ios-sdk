@@ -4,7 +4,7 @@ import Foundation
 enum DelightPopupState {
     case idle
     case loading
-    case ready(DelightDecisionResponse, DelightPopupTheme)
+    case ready(DelightConfigDTO, DelightPopupTheme)
     case hidden
     case failed(String)
 }
@@ -17,7 +17,7 @@ final class DelightPopupController: ObservableObject {
     @Published var state: DelightPopupState = .idle
     @Published var payload: DelightRequestPayload?
     @Published var callbacks: DelightCallbacks = .init()
-    @Published var configuration: DelightConfiguration?
+    @Published var config: DelightConfigDTO?
 
     private init() {}
 
@@ -26,9 +26,7 @@ final class DelightPopupController: ObservableObject {
         self.callbacks = callbacks
         self.state = .loading
         isPresented = true
-        Task {
-            await fetchDecision()
-        }
+        Task { await fetchConfigAndBuildPopup() }
     }
 
     func show() {
@@ -45,59 +43,37 @@ final class DelightPopupController: ObservableObject {
         state = .hidden
     }
 
-    private func fetchDecision() async {
-        guard let payload else {
+    private func fetchConfigAndBuildPopup() async {
+        guard payload != nil else {
             state = .failed("Missing payload")
             return
         }
 
-        guard let config = configuration else {
-            let fallback = DelightDecisionResponse(
-                show: true,
-                templateId: "modal_card_v1",
-                content: DelightContentDTO(
-                    title: "Thanks for your order",
-                    subtitle: "\(payload.firstName) \(payload.lastName) (\(payload.email))",
-                    imageUrl: nil,
-                    primaryCta: "Redeem",
-                    secondaryCta: "Not now",
-                    legalUrl: nil,
-                    rewardId: "demo-reward",
-                    deeplink: nil
-                ),
-                theme: DelightThemeDTO(
-                    primaryHex: "#2563EB",
-                    onPrimaryHex: "#FFFFFF",
-                    surfaceHex: "#FFFFFF",
-                    radiusDp: 16,
-                    elevationDp: 8,
-                    fontScale: 1
-                ),
-                tracking: DelightTrackingDTO(impressionToken: "demo-impression")
-            )
-            state = .ready(fallback, DelightPopupTheme.fromDTO(fallback.theme))
+        let resolvedConfig: DelightConfigDTO
+        if let config {
+            resolvedConfig = config
+        } else {
+            do {
+                let bundledConfig = try DelightConfigService.loadBundledConfig()
+                self.config = bundledConfig
+                resolvedConfig = bundledConfig
+            } catch {
+                state = .failed("SDK not initialized and bundled config is unavailable.")
+                return
+            }
+        }
+
+        guard let popup = resolvedConfig.popup, popup.enabled == true else {
+            state = .failed("Popup config missing or disabled")
             return
         }
 
-        do {
-            let decision = try await DelightDecisionService.fetchDecision(
-                configuration: config,
-                payload: payload
-            )
-
-            guard decision.show else {
-                dismiss()
-                return
-            }
-
-            guard DelightTemplateRegistry.supports(templateId: decision.templateId) else {
-                state = .failed("Unsupported template: \(decision.templateId)")
-                return
-            }
-
-            state = .ready(decision, DelightPopupTheme.fromDTO(decision.theme))
-        } catch {
-            state = .failed("Failed to load reward")
+        guard DelightTemplateRegistry.supports(templateId: resolvedConfig.templateId) else {
+            state = .failed("Unsupported template: \(resolvedConfig.templateId)")
+            return
         }
+
+        let theme = DelightPopupTheme.fromBrandTheme(resolvedConfig.popup?.theme)
+        state = .ready(resolvedConfig, theme)
     }
 }

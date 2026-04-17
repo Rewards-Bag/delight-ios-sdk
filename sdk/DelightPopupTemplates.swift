@@ -12,22 +12,22 @@ enum DelightTemplateRegistry {
 
     @ViewBuilder
     static func view(
-        for decision: DelightDecisionResponse,
+        for config: DelightConfigDTO,
         theme: DelightPopupTheme,
-        onPrimary: @escaping () -> Void,
+        onPrimary: @escaping (String?) -> Void,
         onDismiss: @escaping () -> Void
     ) -> some View {
-        switch decision.templateId {
+        switch config.templateId {
         case "modal_compact_v1":
             DelightCompactTemplate(
-                decision: decision,
+                config: config,
                 theme: theme,
                 onPrimary: onPrimary,
                 onDismiss: onDismiss
             )
         default:
             DelightHeroOfferTemplate(
-                decision: decision,
+                config: config,
                 theme: theme,
                 onPrimary: onPrimary,
                 onDismiss: onDismiss

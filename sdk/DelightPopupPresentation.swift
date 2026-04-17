@@ -41,12 +41,12 @@ public struct DelightPopupView: View {
             ProgressView("Loading reward...")
                 .padding(24)
                 .presentationDetents([.medium])
-        case .ready(let decision, let theme):
+        case .ready(let config, let theme):
             DelightTemplateRegistry.view(
-                for: decision,
+                for: config,
                 theme: theme,
-                onPrimary: {
-                    controller.callbacks.onPrimaryClick?(decision.content.rewardId)
+                onPrimary: { rewardId in
+                    controller.callbacks.onPrimaryClick?(rewardId)
                     Self.dismiss()
                 },
                 onDismiss: {
@@ -56,7 +56,7 @@ public struct DelightPopupView: View {
             .onAppear {
                 if !hasTrackedImpression {
                     hasTrackedImpression = true
-                    controller.callbacks.onImpression?(decision.tracking?.impressionToken)
+                    controller.callbacks.onImpression?(nil)
                 }
             }
         case .failed(let message):
