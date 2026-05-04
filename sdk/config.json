@@ -1,0 +1,730 @@
+{
+  "partnerId": "NjlmMjAzZDQ3YzBhZDU0ZGUwZjdmMWY1",
+  "partnerLogo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/f376b0df-4521-4daa-bde6-aae67ca5943c-StagecoachGroup.svg.png",
+  "country": "GB",
+  "language": "en",
+  "currency": "GBP",
+  "domains": [
+    "stagecoachbus.com",
+    "www.stagecoachbus.com"
+  ],
+  "apiUrl": "https://api.rewardsbag.com",
+  "inline": {
+    "enabled": false,
+    "template": "https://cdn.rewardsbag.com/templates/stagecoachbus-com-inline.html",
+    "css": "https://cdn.rewardsbag.com/templates/stagecoachbus-com-inline.css",
+    "pageContext": {
+      "urlPatterns": [
+        "/checkout",
+        "/cart"
+      ]
+    },
+    "requiredSelectors": [
+      {
+        "selector": "#cart-summary",
+        "required": true,
+        "waitFor": 3000
+      }
+    ],
+    "collectEmail": {
+      "enabled": false,
+      "method": "selector",
+      "selector": "#customer-email"
+    },
+    "rewards": []
+  },
+  "popup": {
+    "enabled": true,
+    "template": "https://cdn.rewardsbag.com/templates/stagecoachbus-com-popup.html",
+    "css": "https://cdn.rewardsbag.com/templates/stagecoachbus-com-popup.css",
+    "pageContext": {
+      "urlPatterns": [
+        "/products",
+        "/.*\\.html"
+      ]
+    },
+    "autoShow": false,
+    "delay": 500,
+    "collectEmail": {
+      "enabled": false,
+      "method": "dataTag",
+      "dataAttribute": "data-customer-email"
+    },
+    "defaultLocale": "en",
+    "selectionRules": {
+      "maxImpressionsPerRolling30Days": 12,
+      "globalCooldownHours": 24,
+      "maxImpressionsPerDay": 1,
+      "maxImpressionsPerRewardPerMonthWithoutEngagement": 3,
+      "suppressRewardAfterClickDays": 90,
+      "suppress18PlusForTicketTypes": [
+        "child",
+        "young-person"
+      ]
+    },
+    "locales": {
+      "en": {
+        "orderLine": "YOU HAVE UNLOCKED A REWARD",
+        "cta": "Claim your free trial now",
+        "secondaryCta": "No thanks",
+        "partnerTerms": "Partner Terms & Conditions",
+        "terms": {
+          "header": "Terms & Conditions",
+          "show": "Show terms",
+          "hide": "Hide terms",
+          "toggleAriaLabel": "Toggle terms and conditions"
+        },
+        "poweredBy": "Powered by RewardsBag",
+        "privacyPolicy": "Privacy Policy",
+        "closeAriaLabel": "Close rewards offer",
+        "openWidgetAriaLabel": "Open rewards",
+        "slider": {
+          "prevAriaLabel": "Previous reward",
+          "nextAriaLabel": "Next reward",
+          "dotAriaLabel": "Go to reward {{index}}"
+        }
+      },
+      "de": {
+        "orderLine": "Vielen Dank für Ihre Bestellung!",
+        "cta": "Jetzt sichern",
+        "secondaryCta": "Nein danke",
+        "terms": {
+          "header": "Allgemeine Geschäftsbedingungen",
+          "show": "AGB anzeigen",
+          "hide": "AGB ausblenden",
+          "toggleAriaLabel": "AGB ein- oder ausblenden"
+        },
+        "poweredBy": "Bereitgestellt von RewardsBag",
+        "privacyPolicy": "Datenschutz",
+        "closeAriaLabel": "Angebot schließen",
+        "openWidgetAriaLabel": "Prämien öffnen",
+        "slider": {
+          "prevAriaLabel": "Vorherige Prämie",
+          "nextAriaLabel": "Nächste Prämie",
+          "dotAriaLabel": "Zu Prämie {{index}} wechseln"
+        }
+      }
+    },
+    "theme": {
+      "version": 1,
+      "overlay": {
+        "backgroundColor": "rgba(0, 0, 0, 0.5)",
+        "zIndex": 999999
+      },
+      "widgetContainer": {
+        "position": "relative",
+        "width": "100%",
+        "maxWidth": "560px",
+        "minWidth": "0",
+        "margin": "0",
+        "padding": {
+          "top": "0",
+          "right": "0",
+          "bottom": "0",
+          "left": "0"
+        },
+        "backgroundColor": "#ffffff",
+        "borderRadius": "12px",
+        "borderWidth": "0",
+        "borderStyle": "solid",
+        "borderColor": "transparent",
+        "boxShadow": "0 8px 32px rgba(0, 0, 0, 0.12)",
+        "overflow": "hidden"
+      },
+      "widgetImageContainer": {
+        "padding": {
+          "top": "0",
+          "right": "0",
+          "bottom": "0",
+          "left": "0"
+        },
+        "backgroundColor": "transparent",
+        "minHeight": "0",
+        "maxHeight": "none",
+        "borderRadius": "0",
+        "overflow": "hidden"
+      },
+      "widgetImage": {
+        "objectFit": "cover",
+        "width": "100%",
+        "height": "auto",
+        "maxHeight": "none",
+        "aspectRatio": "auto"
+      },
+      "widgetContentContainer": {
+        "display": "flex",
+        "flexDirection": "column",
+        "padding": {
+          "top": "20px",
+          "right": "24px",
+          "bottom": "24px",
+          "left": "24px"
+        },
+        "gap": "12px",
+        "alignItems": "stretch",
+        "maxHeight": "none",
+        "overflowY": "visible"
+      },
+      "hostLogo": {
+        "padding": {
+          "top": "0",
+          "right": "0",
+          "bottom": "8px",
+          "left": "0"
+        },
+        "width": "auto",
+        "height": "32px",
+        "maxWidth": "160px",
+        "maxHeight": "40px",
+        "borderRadius": "0",
+        "objectFit": "contain",
+        "alignSelf": "center",
+        "backgroundColor": "transparent"
+      },
+      "rewardLogo": {
+        "display": "flex",
+        "position": "absolute",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "left": "10",
+        "top": "0",
+        "backgroundColor": "#fff",
+        "boxShadow": "0 3px 12px rgba(0, 0, 0, 0.24)",
+        "width": "64px",
+        "height": "64px",
+        "borderRadius": "50%",
+        "objectFit": "contain"
+      },
+      "orderLine": {
+        "fontFamily": "inherit",
+        "fontSize": "14px",
+        "fontWeight": "400",
+        "lineHeight": "1.4",
+        "letterSpacing": "normal",
+        "textTransform": "none",
+        "color": "#666666",
+        "textDecoration": "none",
+        "textUnderlineOffset": "2px",
+        "margin": {
+          "top": "0",
+          "right": "0",
+          "bottom": "8px",
+          "left": "0"
+        },
+        "textAlign": "center"
+      },
+      "headline": {
+        "fontFamily": "inherit",
+        "fontSize": "28px",
+        "fontWeight": "900",
+        "lineHeight": "1.5",
+        "letterSpacing": "normal",
+        "textTransform": "none",
+        "color": "#000000",
+        "textDecoration": "none",
+        "textUnderlineOffset": "2px",
+        "margin": {
+          "top": "0",
+          "right": "0",
+          "bottom": "12px",
+          "left": "0"
+        },
+        "textAlign": "center",
+        "maxLines": 0
+      },
+      "rewardDescription": {
+        "fontFamily": "inherit",
+        "fontSize": "14px",
+        "fontWeight": "600",
+        "lineHeight": "1.5",
+        "color": "#111111",
+        "textAlign": "center",
+        "margin": {
+          "top": "0",
+          "right": "0",
+          "bottom": "6px",
+          "left": "0"
+        },
+        "linkColor": "#0066cc",
+        "linkTextDecoration": "underline",
+        "linkFontWeight": "400"
+      },
+      "ctaHelperText": {
+        "fontFamily": "inherit",
+        "fontSize": "12px",
+        "fontWeight": "600",
+        "lineHeight": "1.4",
+        "color": "#111111",
+        "textDecoration": "none",
+        "textAlign": "center",
+        "margin": {
+          "top": "0",
+          "right": "0",
+          "bottom": "8px",
+          "left": "0"
+        }
+      },
+      "cta": {
+        "width": "100%",
+        "minHeight": "64px",
+        "padding": {
+          "top": "12px",
+          "right": "20px",
+          "bottom": "12px",
+          "left": "20px"
+        },
+        "fontFamily": "inherit",
+        "fontSize": "16px",
+        "fontWeight": "600",
+        "lineHeight": "1.2",
+        "textAlign": "center",
+        "color": "#ffffff",
+        "backgroundColor": "#008465",
+        "borderWidth": "0",
+        "borderStyle": "solid",
+        "borderColor": "transparent",
+        "borderRadius": "32px",
+        "hoverBackgroundColor": "#333333",
+        "hoverColor": "#ffffff",
+        "activeBackgroundColor": "#000000",
+        "focusRingColor": "rgba(0, 102, 204, 0.45)",
+        "focusRingWidth": "2px",
+        "disabledOpacity": "0.5"
+      },
+      "secondaryCta": {
+        "width": "100%",
+        "minHeight": "44px",
+        "padding": {
+          "top": "10px",
+          "right": "16px",
+          "bottom": "10px",
+          "left": "16px"
+        },
+        "fontFamily": "inherit",
+        "fontSize": "14px",
+        "fontWeight": "500",
+        "lineHeight": "1.2",
+        "textAlign": "center",
+        "color": "#666666",
+        "backgroundColor": "transparent",
+        "borderWidth": "0",
+        "borderStyle": "solid",
+        "borderColor": "transparent",
+        "borderRadius": "8px",
+        "hoverColor": "#333333",
+        "hoverBackgroundColor": "rgba(0, 0, 0, 0.04)",
+        "focusRingColor": "rgba(0, 102, 204, 0.35)",
+        "focusRingWidth": "2px"
+      },
+      "terms": {
+        "show": true,
+        "fontFamily": "inherit",
+        "fontWeight": "400",
+        "lineHeight": "1.4",
+        "color": "#000000",
+        "textAlign": "center",
+        "textDecoration": "none",
+        "margin": {
+          "top": "8px",
+          "right": "0",
+          "bottom": "8px",
+          "left": "0"
+        },
+        "chevronColor": "#666666",
+        "bodyFontSize": "12px",
+        "bodyFontWeight": "400",
+        "bodyLineHeight": "1.45",
+        "bodyColor": "#999999",
+        "bodyMaxHeight": "160px",
+        "bodyPadding": {
+          "top": "0",
+          "right": "0",
+          "bottom": "0",
+          "left": "0"
+        },
+        "bodyBackgroundColor": "transparent",
+        "linkColor": "#0066cc",
+        "linkTextDecoration": "underline",
+        "linkHoverColor": "#004499"
+      },
+      "footerLinks": {
+        "display": "flex",
+        "flexWrap": "nowrap",
+        "fontSize": "9.5px",
+        "fontWeight": "500",
+        "lineHeight": "1.2",
+        "color": "#000000",
+        "linkColor": "#000000",
+        "linkTextDecoration": "underline",
+        "separatorColor": "#000000",
+        "margin": {
+          "top": "4px",
+          "right": "0",
+          "bottom": "0",
+          "left": "0"
+        },
+        "textAlign": "center",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": "4px",
+        "whiteSpace": "nowrap"
+      },
+      "closeButton": {
+        "position": "absolute",
+        "display": "flex",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "cursor": "pointer",
+        "top": "12px",
+        "right": "12px",
+        "width": "30px",
+        "height": "30px",
+        "padding": {
+          "top": "0",
+          "right": "0",
+          "bottom": "0",
+          "left": "0"
+        },
+        "borderRadius": "4px",
+        "backgroundColor": "rgba(255, 255, 255, 0.9)",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgba(0, 0, 0, 0.08)",
+        "iconColor": "#333333",
+        "iconSize": "30px",
+        "hoverBackgroundColor": "#f2f2f2",
+        "hoverIconColor": "#111111",
+        "focusRingColor": "rgba(0, 102, 204, 0.45)",
+        "focusRingWidth": "2px",
+        "zIndex": 1
+      },
+      "slider": {
+        "margin": {
+          "top": "12px",
+          "right": "0",
+          "bottom": "8px",
+          "left": "0"
+        },
+        "counter": {
+          "fontSize": "12px",
+          "fontWeight": "600",
+          "color": "#ffffff",
+          "inactiveColor": "#999999",
+          "separatorColor": "#cccccc"
+        },
+        "dots": {
+          "gap": "8px",
+          "size": "8px",
+          "inactiveColor": "#cccccc",
+          "activeColor": "#111111",
+          "activeBorderWidth": "0",
+          "activeBorderColor": "transparent"
+        },
+        "arrows": {
+          "size": "36px",
+          "iconColor": "#333333",
+          "backgroundColor": "rgba(255, 255, 255, 0.95)",
+          "borderRadius": "9999px",
+          "borderWidth": "1px",
+          "borderColor": "rgba(0, 0, 0, 0.08)",
+          "disabledOpacity": "0.35"
+        }
+      },
+      "loadingSpinner": {
+        "overlayBackgroundColor": "rgba(0, 0, 0, 0.4)",
+        "dotColor": "#000000"
+      },
+      "safeArea": {
+        "paddingBottom": "env(safe-area-inset-bottom, 0px)"
+      }
+    },
+    "rewards": [
+      {
+        "id": "69f359a7bca86c71ecb9c556",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/12834b2b-e874-4707-8332-b861d9698659-Tinga%20350x200.jpg",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/d13116cb-2996-4c0c-8220-b3ddcb01fefa-Tinga%20600x250.jpg",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/0bee5255-a6fe-43b5-83ee-0fa1569e71bb-SimplyCook%20logo%20png.png",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=6314&awinaffid=2867329",
+        "partnerTermsUrl": "https://www.simplycook.com/terms-and-conditions",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "Here's a free SimplyCook box",
+            "description": "<p>Try SimplyCook's delicious meal kits and easy to follow recipes with a free box (just pay £1.79 postage).</p>\r\n",
+            "terms": "<p>You can change or cancel your subscription at any time.</p>",
+            "cta": "Claim your free gift now",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "student",
+        "ageRequirement": "none"
+      },
+      {
+        "id": "69f3599e56f366b806664f74",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/bfbbf957-454c-4a0e-a511-a224e9f34436-BookBeat%20350x200.jpg",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/abcfa540-952f-445c-8adb-d2afe77b564d-BookBeat.jpg",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/1e6235a7-2b58-4c36-ba25-d1a4b1a52b6f-bookbeat_review.png",
+        "ctaUrl": "https://www.bookbeat.com",
+        "partnerTermsUrl": "https://assets.ctfassets.net/4s7izhcdroyy/5MOUWF6JbB948SgZuozmof/0563af588f57ca8f69b4e74d5f20e54a/termsUK_20230511.pdf",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "Enjoy 90 days of free audiobooks from BookBeat",
+            "description": "<p>We've partnered with BookBeat to bring you 90 days of free audiobooks and eBooks!</p>\r\n<p>1 million+ books</p>\r\n<p>Cancel anytime</p>\r\n",
+            "terms": "<p>New BookBeat users only. Auto-renews unless cancelled. Cancel anytime.&nbsp;</p>",
+            "cta": "Claim your free gift now",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "child",
+        "ageRequirement": "none"
+      },
+      {
+        "id": "69f35992bca86c71ecb9c3dd",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/587be045-128c-4416-b802-d955a92256b8-04-24-Beer52-Banner-Delight-350x200.png",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/1c52329e-bb42-4ad6-b9f3-f2d291fb115d-3b862059-54cb-40b1-960c-52bfb57cd48e-600x250.png",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/0369ccbe-2af9-4321-a4e1-471e304f28d7-download.png",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=54187&awinaffid=2867329&ued=https%3A%2F%2Fwww.beer52.com%2Fsc26",
+        "partnerTermsUrl": "https://www.beer52.com/terms",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "Free case of craft beer from Beer52 (just pay postage)",
+            "description": "<p>Beer52 are offering you a case of 8 craft beers for free! Cover just £5.95 for postage and they’ll deliver the beers, 2 snacks and a copy of Ferment magazine. By claiming this offer, you'll join the monthly beer52 club - deliveries continue unless cancelled. 18+. Drink responsibly. See terms below.&nbsp;</p>",
+            "terms": "<p> 18+ only. See Beer52 website for full T&amp;Cs.</p>",
+            "cta": "Claim your free gift now",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "adult",
+        "ageRequirement": "18+"
+      },
+      {
+        "id": "69f3598d56f366b806664d6b",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/eab3f3a0-793c-49cf-906b-53745b5be0db-e62f69e1-013c-4308-b774-e64e95e234bb-04-25-Wine52-Banner-Delight-350x200.png",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/b77b7873-8e22-43d3-9185-376cc18aa56b-d0ad827a-509c-4160-a58a-39f42f96633a-Wine52%20360x585.jpg",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/164a3020-3123-45ba-bd14-0f808f7d3fba-download.png",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=110978&awinaffid=2867329&ued=https%3A%2F%2Fwww.beer52.com%2Fwine%2Fwsc26",
+        "partnerTermsUrl": "https://www.wine52.com/terms",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "A free case of 3 wines from Wine52 worth £36",
+            "description": "<p>Get 3 exclusive wines for free, just cover postage. New wines delivered monthly.</p><p>18+ only. £9.95 postage. Then £38.95 every 28 days. Cancel anytime. New customers only. Drink responsibly. See terms.</p>",
+            "terms": "<p>18+ only. £9.95 postage. Please drink responsibly.</p>",
+            "cta": "Get My Free Wine52 Case",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "adult",
+        "ageRequirement": "18+"
+      },
+      {
+        "id": "69f35988112a70ed50e743cd",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/5ca96d50-3fe7-415c-a984-f60ec45b2148-Coffee52-Delight-Mobile-Popup-350x200.png",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/ab3b6aff-df92-40a4-9759-ad12a3ac4ae8-Coffee52-Delight-Desktop-Popup-V2-450x600%20copy.png",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/930181f5-9699-4513-9f0d-287e6cbda2f1-logo.png",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=124036&awinaffid=2867329&ued=https%3A%2F%2Fwww.beer52.com%2Fcoffee%2Fcsgc26",
+        "partnerTermsUrl": "https://www.beer52.com/coffee/terms",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "2 free bags of coffee from Coffee52 worth £14",
+            "description": "<p><strong>Enjoy 2×200g bags of speciality Brazilian coffee — free.</strong>  <br><br>Worth £14 from Coffee52</p>\r\n<p>Just £2.95 postage. Cancel anytime - see terms.&nbsp;</p>\r\n",
+            "terms": "<p>Delivery surcharges may apply. See website for full terms.</p>",
+            "cta": "Claim your free gift now",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "young-person",
+        "ageRequirement": "none"
+      },
+      {
+        "id": "69f21dec2fd4815f97b2859c",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/5ca96d50-3fe7-415c-a984-f60ec45b2148-Coffee52-Delight-Mobile-Popup-350x200.png",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/ab3b6aff-df92-40a4-9759-ad12a3ac4ae8-Coffee52-Delight-Desktop-Popup-V2-450x600%20copy.png",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/930181f5-9699-4513-9f0d-287e6cbda2f1-logo.png",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=124036&awinaffid=2867329&ued=https%3A%2F%2Fwww.beer52.com%2Fcoffee%2Fcsgc26",
+        "partnerTermsUrl": "https://www.beer52.com/coffee/terms",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "2 free bags of coffee from Coffee52 worth £14",
+            "description": "<p><strong>Enjoy 2×200g bags of speciality Brazilian coffee — free.</strong>  <br><br>Worth £14 from Coffee52</p>\r\n<p>Just £2.95 postage. Cancel anytime - see terms.&nbsp;</p>\r\n",
+            "terms": "<p>Delivery surcharges may apply. See website for full terms.</p>",
+            "cta": "Claim your free gift now",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "student",
+        "ageRequirement": "none"
+      },
+      {
+        "id": "69f21de02fd4815f97b2845d",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/eab3f3a0-793c-49cf-906b-53745b5be0db-e62f69e1-013c-4308-b774-e64e95e234bb-04-25-Wine52-Banner-Delight-350x200.png",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/b77b7873-8e22-43d3-9185-376cc18aa56b-d0ad827a-509c-4160-a58a-39f42f96633a-Wine52%20360x585.jpg",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/164a3020-3123-45ba-bd14-0f808f7d3fba-download.png",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=110978&awinaffid=2867329&ued=https%3A%2F%2Fwww.beer52.com%2Fwine%2Fwsc26",
+        "partnerTermsUrl": "https://www.wine52.com/terms",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "A free case of 3 wines from Wine52 worth £36",
+            "description": "<p>Get 3 exclusive wines for free, just cover postage. New wines delivered monthly.</p><p>18+ only. £9.95 postage. Then £38.95 every 28 days. Cancel anytime. New customers only. Drink responsibly. See terms.</p>",
+            "terms": "<p>18+ only. £9.95 postage. Please drink responsibly.</p>",
+            "cta": "Get My Free Wine52 Case",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "adult",
+        "ageRequirement": "18+"
+      },
+      {
+        "id": "69f21dd4b3d5cbf92636c88c",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/587be045-128c-4416-b802-d955a92256b8-04-24-Beer52-Banner-Delight-350x200.png",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/1c52329e-bb42-4ad6-b9f3-f2d291fb115d-3b862059-54cb-40b1-960c-52bfb57cd48e-600x250.png",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/0369ccbe-2af9-4321-a4e1-471e304f28d7-download.png",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=54187&awinaffid=2867329&ued=https%3A%2F%2Fwww.beer52.com%2Fsc26",
+        "partnerTermsUrl": "https://www.beer52.com/terms",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "Free case of craft beer from Beer52 (just pay postage)",
+            "description": "<p>Beer52 are offering you a case of 8 craft beers for free! Cover just £5.95 for postage and they’ll deliver the beers, 2 snacks and a copy of Ferment magazine. By claiming this offer, you'll join the monthly beer52 club - deliveries continue unless cancelled. 18+. Drink responsibly. See terms below.&nbsp;</p>\r\n",
+            "terms": "<p> 18+ only. See Beer52 website for full T&amp;Cs.</p>",
+            "cta": "Claim your free gift now",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "adult",
+        "ageRequirement": "18+"
+      },
+      {
+        "id": "69f20ae72fd4815f97af9a2f",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/bfbbf957-454c-4a0e-a511-a224e9f34436-BookBeat%20350x200.jpg",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/abcfa540-952f-445c-8adb-d2afe77b564d-BookBeat.jpg",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/1e6235a7-2b58-4c36-ba25-d1a4b1a52b6f-bookbeat_review.png",
+        "ctaUrl": "https://www.bookbeat.com",
+        "partnerTermsUrl": "https://assets.ctfassets.net/4s7izhcdroyy/5MOUWF6JbB948SgZuozmof/0563af588f57ca8f69b4e74d5f20e54a/termsUK_20230511.pdf",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "Enjoy 90 days of free audiobooks from BookBeat",
+            "description": "<p>We've partnered with BookBeat to bring you 90 days of free audiobooks and eBooks!</p>\r\n<p>1 million+ books</p>\r\n<p>Cancel anytime</p>\r\n",
+            "terms": "<p>New BookBeat users only. Auto-renews unless cancelled. Cancel anytime.&nbsp;</p>",
+            "cta": "Claim your free gift now",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "concession",
+        "ageRequirement": "none"
+      },
+      {
+        "id": "69f1fd5062350fe42a4677ec",
+        "postPopupMobileImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/12834b2b-e874-4707-8332-b861d9698659-Tinga%20350x200.jpg",
+        "postPopupWebImage": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/d13116cb-2996-4c0c-8220-b3ddcb01fefa-Tinga%20600x250.jpg",
+        "logo": "https://delight-s3-bucket.s3.eu-west-2.amazonaws.com/0bee5255-a6fe-43b5-83ee-0fa1569e71bb-SimplyCook%20logo%20png.png",
+        "ctaUrl": "https://www.awin1.com/cread.php?awinmid=6314&awinaffid=2867329",
+        "partnerTermsUrl": "https://www.simplycook.com/terms-and-conditions",
+        "privacyPolicyUrl": "https://www.rewardsbag.com/delight-privacy-policy",
+        "poweredByUrl": "https://www.rewardsbag.com/delight",
+        "locales": {
+          "en": {
+            "headline": "Here's a free SimplyCook box",
+            "description": "<p>Try SimplyCook's delicious meal kits and easy to follow recipes with a free box (just pay £1.79 postage).</p>\r\n",
+            "terms": "<p>You can change or cancel your subscription at any time.</p>",
+            "cta": "Claim your free gift now",
+            "emailDisclaimer": "Tap to access your reward - we’ll also email you a copy."
+          },
+          "de": {
+            "headline": "Sie haben einen £15-Cashback-Bonus verdient!",
+            "description": "Melden Sie sich kostenlos bei Rakuten an und sammeln Sie Cashback bei über 500 Händlern.",
+            "terms": "Angebotsbedingungen (Übersetzung Platzhalter).",
+            "cta": "Cashback holen",
+            "emailDisclaimer": "Klicken Sie, um auf Ihre Belohnung zuzugreifen - wir senden Ihnen auch eine E-Mail."
+          }
+        },
+        "ticketType": "student",
+        "ageRequirement": "none"
+      }
+    ]
+  },
+  "analytics": {
+    "enabled": true,
+    "endpoint": "https://api.rewardsbag.com/analytics",
+    "batchSize": 5,
+    "flushInterval": 5000
+  }
+}
