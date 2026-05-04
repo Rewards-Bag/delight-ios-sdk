@@ -42,8 +42,7 @@ struct ContentView: View {
         }
         .task {
             try? await Delight.initialize(
-                brandName: "stagecoachbus-com",
-                useBundledConfig: true
+                brandName: "rewardsbag-provided-brand-name"
             )
         }
     }
@@ -54,12 +53,8 @@ struct ContentView: View {
 
 `Delight.initialize(...)` supports:
 
-- `brandName`: brand identifier for remote config path
-- `cdnBaseURL`: optional CDN base URL override
-- `useBundledConfig`: load local bundled `config.json` instead of CDN
-- `ignoreLocalRulesForTesting`: bypass local suppression rules for QA/testing
+- `brandName`: production brand identifier provided by RewardsBag
 
 ## Notes
 
-- The package target is `sdk`, and `config.json` is bundled as a package resource.
 - Footer links, CTA handling, and local suppression are all handled by the SDK.
