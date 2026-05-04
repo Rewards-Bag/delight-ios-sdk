@@ -18,11 +18,8 @@ struct DelightHeroOfferTemplate: View {
         let reward = rewards.isEmpty ? nil : rewards[clampedIndex]
         let rewardLocale = config.resolvedRewardLocale(for: reward)
         let popupLocale = config.resolvedPopupLocale
-        let termsHeaderFontSize = CGFloat(config.termsHeaderFontSize)
-        let subtitleFontSize = CGFloat(config.orderLineFontSize)
-        let subtitleWeight = fontWeight(from: config.orderLineFontWeight, fallback: .semibold)
-        let subtitleColor = colorFromHex(config.orderLineColorHex, fallback: Color.black.opacity(0.7))
-        let subtitleLineSpacing = lineSpacing(fontSize: subtitleFontSize, lineHeight: config.orderLineLineHeight)
+        let orderLineFontSize = CGFloat(config.orderLineFontSize)
+        let orderLineLineSpacing = lineSpacing(fontSize: orderLineFontSize, lineHeight: config.orderLineLineHeight)
         let headlineFontSize = CGFloat(config.headlineFontSize)
         let headlineWeight = fontWeight(from: config.headlineFontWeight, fallback: .bold)
         let headlineColor = colorFromHex(config.headlineColorHex, fallback: .black)
@@ -31,26 +28,17 @@ struct DelightHeroOfferTemplate: View {
         let descriptionWeight = fontWeight(from: config.descriptionFontWeight, fallback: .regular)
         let descriptionColor = colorFromHex(config.descriptionColorHex, fallback: Color.black.opacity(0.55))
         let descriptionLineSpacing = lineSpacing(fontSize: descriptionFontSize, lineHeight: config.descriptionLineHeight)
-        let termsHeaderWeight = fontWeight(from: config.popup?.theme?.terms?.headerFontWeight, fallback: .semibold)
-        let termsHeaderColor = colorFromHex(config.popup?.theme?.terms?.headerColor, fallback: Color.black.opacity(0.75))
         let ctaHelperTextFontSize = CGFloat(config.ctaHelperTextFontSize)
         let ctaHelperTextWeight = fontWeight(from: config.ctaHelperTextFontWeight, fallback: .regular)
-        let ctaHelperTextColor = colorFromHex(config.ctaHelperTextColorHex, fallback: Color.black.opacity(0.6))
         let ctaHelperTextLineSpacing = lineSpacing(fontSize: ctaHelperTextFontSize, lineHeight: config.ctaHelperTextLineHeight)
         let ctaButtonFontSize = CGFloat(config.ctaButtonFontSize)
         let ctaButtonWeight = fontWeight(from: config.ctaButtonFontWeight, fallback: .bold)
         let ctaButtonLineSpacing = lineSpacing(fontSize: ctaButtonFontSize, lineHeight: config.ctaButtonLineHeight)
         let ctaButtonMinHeight = CGFloat(config.ctaButtonMinHeight)
-        let ctaButtonCornerRadius = CGFloat(config.ctaButtonCornerRadius)
         let footerLinksLineSpacing = lineSpacing(fontSize: 10, lineHeight: config.footerLinksLineHeight)
         let contentGap = CGFloat(config.contentGap)
         let contentPaddingTop = CGFloat(config.contentPaddingTop)
         let contentPaddingHorizontal = CGFloat(config.contentPaddingHorizontal)
-        let hostLogoHeight = CGFloat(config.hostLogoHeight)
-        let hostLogoMaxWidth = CGFloat(config.hostLogoMaxWidth)
-        let hostLogoPaddingTop = CGFloat(config.hostLogoPaddingTop)
-        let rewardLogoHeight = CGFloat(config.rewardLogoHeight)
-        let rewardLogoMaxWidth = CGFloat(config.rewardLogoMaxWidth)
         let closeButtonSize = CGFloat(config.closeButtonSize)
         let closeButtonIconSize = CGFloat(config.closeButtonIconSize)
         let closeButtonCornerRadius = CGFloat(config.closeButtonCornerRadius)
@@ -66,55 +54,61 @@ struct DelightHeroOfferTemplate: View {
         let sliderArrowBG = colorFromCss(config.sliderArrowBackgroundColorHex, fallback: Color.black.opacity(0.06))
         let sliderArrowIcon = colorFromCss(config.sliderArrowIconColorHex, fallback: .black)
         let sliderArrowCornerRadius = CGFloat(config.sliderArrowCornerRadius)
-        let hostLogoMargin = edgeInsets(from: config.hostLogoMargin)
-        let rewardLogoMargin = edgeInsets(from: config.rewardLogoMargin)
         let sliderMargin = edgeInsets(from: config.sliderMargin)
         let orderLineMargin = edgeInsets(from: config.orderLineMargin)
         let headlineMargin = edgeInsets(from: config.headlineMargin)
         let descriptionMargin = edgeInsets(from: config.descriptionMargin)
-        let termsHeaderMargin = edgeInsets(from: config.termsHeaderMargin)
         let ctaHelperTextMargin = edgeInsets(from: config.ctaHelperTextMargin)
         let ctaButtonMargin = edgeInsets(from: config.ctaButtonMargin)
+        let ctaButtonInnerPadding = edgeInsets(from: config.ctaButtonPadding)
         let footerLinksMargin = edgeInsets(from: config.footerLinksMargin)
+        let rewardLogoBadgeOuterInsets = edgeInsets(from: DelightRewardLogoMetrics.outerInsets(for: config))
+        let rewardLogoInnerPadding = edgeInsets(from: config.rewardLogoPadding)
+
+        let heroBannerHeight: CGFloat = 208
+        let rewardBadgeDiameter: CGFloat = DelightRewardLogoMetrics.badgeDiameter(for: config)
+        /// Same leading/trailing inset for the widget body column (aligns badge with text edge).
+        let widgetBodyLeadingInset: CGFloat = 8
+        /// Nest these so inset-from-card-edge matches the pre–column-padding layout (16 / 20 / 12).
+        let descriptionRelativeHorizontalInset = max(0, 16 - widgetBodyLeadingInset)
+        let finePrintRelativeHorizontalInset = max(0, 20 - widgetBodyLeadingInset)
+        let redemptionRelativeHorizontalInset = max(0, 12 - widgetBodyLeadingInset)
+        let rewardLogoOverlayPadding = EdgeInsets(
+            top: rewardLogoBadgeOuterInsets.top,
+            leading: widgetBodyLeadingInset,
+            bottom: rewardLogoBadgeOuterInsets.bottom,
+            trailing: rewardLogoBadgeOuterInsets.trailing
+        )
+        /// Half the badge sits in the hero, half in the body: top edge = seam − diameter/2 (minus configured top inset).
+        let rewardLogoBadgeOffsetY = heroBannerHeight - (rewardBadgeDiameter / 2) - rewardLogoOverlayPadding.top
 
         ZStack(alignment: .topLeading) {
             theme.overlay
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
 
             ZStack(alignment: .topLeading) {
                 VStack(spacing: 0) {
-                    ZStack {
-                        if let imageUrl = reward?.postPopupMobileImage ?? reward?.postPopupWebImage, let imageURL = URL(string: imageUrl) {
-                            AsyncImage(url: imageURL) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                default:
-                                    imagePlaceholder
-                                }
+                    ZStack(alignment: .topTrailing) {
+                        heroBanner(reward: reward, height: heroBannerHeight)
+
+                        if config.showCloseButton {
+                            Button {
+                                onDismiss()
+                            } label: {
+                                Image(systemName: "minus")
+                                    .font(.system(size: closeButtonIconSize, weight: .bold))
+                                    .foregroundStyle(closeButtonIconColor)
+                                    .frame(width: closeButtonSize, height: closeButtonSize)
+                                    .background(closeButtonBG)
+                                    .clipShape(RoundedRectangle(cornerRadius: closeButtonCornerRadius))
                             }
-                        } else {
-                            imagePlaceholder
+                            .padding(.top, closeButtonTop)
+                            .padding(.trailing, closeButtonTrailing)
                         }
                     }
-                    .frame(height: 200)
-                    .clipped()
 
                     VStack(spacing: contentGap) {
-                        if config.showHostLogo,
-                           let hostLogoUrl = config.partnerLogo,
-                           let hostLogoURL = URL(string: hostLogoUrl) {
-                            logoImage(url: hostLogoURL, height: hostLogoHeight, maxWidth: hostLogoMaxWidth)
-                                .padding(.top, hostLogoPaddingTop)
-                                .padding(hostLogoMargin)
-                        } else if config.showHostLogo {
-                            hostLogoImage()
-                                .padding(.top, hostLogoPaddingTop)
-                                .padding(hostLogoMargin)
-                        }
-
                         if config.showSlider, rewards.count > 1 {
                             rewardSliderControls(
                                 rewardCount: rewards.count,
@@ -132,10 +126,12 @@ struct DelightHeroOfferTemplate: View {
                         }
 
                         if config.showOrderLine, let subtitle = popupLocale?.orderLine {
-                            Text(subtitle)
-                                .font(.system(size: subtitleFontSize, weight: subtitleWeight))
-                                .foregroundStyle(subtitleColor)
-                                .lineSpacing(subtitleLineSpacing)
+                            Text(subtitle.uppercased())
+                                .font(.system(size: max(11, orderLineFontSize - 2), weight: .semibold))
+                                .tracking(0.6)
+                                .foregroundStyle(supportingTextColor)
+                                .lineSpacing(orderLineLineSpacing)
+                                .multilineTextAlignment(.center)
                                 .padding(orderLineMargin)
                         }
 
@@ -146,6 +142,7 @@ struct DelightHeroOfferTemplate: View {
                                 .foregroundStyle(headlineColor)
                                 .lineSpacing(headlineLineSpacing)
                                 .scaleEffect(theme.fontScale)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(headlineMargin)
                         }
 
@@ -155,89 +152,73 @@ struct DelightHeroOfferTemplate: View {
                             Text(description)
                                 .font(.system(size: descriptionFontSize, weight: descriptionWeight))
                                 .multilineTextAlignment(.center)
-                                .foregroundStyle(descriptionColor)
+                                .foregroundStyle(descriptionColor.opacity(0.85))
                                 .lineSpacing(descriptionLineSpacing)
-                                .padding(.horizontal, 20)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, descriptionRelativeHorizontalInset)
                                 .padding(descriptionMargin)
                         }
 
-                        if config.showRewardLogo,
-                           let rewardLogoUrl = reward?.logo,
-                           let rewardLogoURL = URL(string: rewardLogoUrl) {
-                            logoImage(url: rewardLogoURL, height: rewardLogoHeight, maxWidth: rewardLogoMaxWidth)
-                                .padding(.horizontal, 20)
-                                .padding(rewardLogoMargin)
-                        } else if config.showRewardLogo {
-                            placeholderSlot(label: "Reward logo placeholder", height: 34)
-                                .padding(.horizontal, 20)
-                                .padding(rewardLogoMargin)
-                        }
-
-                        if config.showTermsHeader {
-                            HStack(spacing: 6) {
-                                Text(popupLocale?.terms?.header ?? "Terms & Conditions")
-                                    .font(.system(size: termsHeaderFontSize, weight: termsHeaderWeight))
-                                    .foregroundStyle(termsHeaderColor)
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(Color.black.opacity(0.65))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 20)
-                            .padding(termsHeaderMargin)
-                        }
-
-                        if config.showCtaHelperText,
-                           let ctaHelperText = rewardLocale?.ctaHelperText,
-                           !ctaHelperText.isEmpty {
-                            Text(ctaHelperText)
-                                .font(.system(size: ctaHelperTextFontSize, weight: ctaHelperTextWeight))
+                        if let finePrint = compactTermsDisclaimer(rewardLocale?.terms),
+                           !finePrint.isEmpty {
+                            Text(finePrint)
+                                .font(.system(size: max(11, descriptionFontSize - 3), weight: .regular))
+                                .foregroundStyle(supportingTextColor)
                                 .multilineTextAlignment(.center)
-                                .foregroundStyle(ctaHelperTextColor)
-                                .lineSpacing(ctaHelperTextLineSpacing)
-                                .lineLimit(2)
-                                .padding(.horizontal, 20)
-                                .padding(ctaHelperTextMargin)
-                        } else if config.showCtaHelperText {
-                            placeholderSlot(label: "Small CTA text placeholder", height: 24)
-                                .padding(.horizontal, 20)
-                                .padding(ctaHelperTextMargin)
+                                .padding(.horizontal, finePrintRelativeHorizontalInset)
+                                .padding(.top, -contentGap * 0.35)
                         }
+
+                        Color.clear.frame(height: max(4, contentGap))
 
                         if config.showCTAButton {
-                            Button(rewardLocale?.cta ?? popupLocale?.cta ?? "Claim now") {
-                                openCTAUrl(reward?.ctaUrl) {
-                                    onPrimary(reward?.id)
+                            HStack(spacing: 0) {
+                                Button {
+                                    openCTAUrl(reward?.ctaUrl) {
+                                        onPrimary(reward?.id)
+                                    }
+                                } label: {
+                                    Text(rewardLocale?.cta ?? popupLocale?.cta ?? "Claim now")
+                                        .font(.system(size: ctaButtonFontSize, weight: ctaButtonWeight))
+                                        .lineSpacing(ctaButtonLineSpacing)
+                                        .multilineTextAlignment(.center)
+                                        .foregroundStyle(theme.onPrimary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(ctaButtonInnerPadding)
+                                        .frame(minHeight: CGFloat(ctaButtonMinHeight))
+                                        .background(theme.primary)
+                                        .clipShape(Capsule())
                                 }
+                                .buttonStyle(.plain)
+                                .shadow(color: Color.black.opacity(0.12), radius: 8, y: 4)
                             }
-                            .font(.system(size: ctaButtonFontSize, weight: ctaButtonWeight))
-                            .lineSpacing(ctaButtonLineSpacing)
-                            .foregroundStyle(theme.onPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: ctaButtonMinHeight)
-                            .padding(.vertical, 14)
-                            .background(theme.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: ctaButtonCornerRadius))
-                            .padding(.horizontal, 22)
+                            .padding(.horizontal, finePrintRelativeHorizontalInset)
                             .padding(ctaButtonMargin)
                         }
 
+                        if config.showCtaHelperText {
+                            redemptionNote(
+                                rewardLocale: rewardLocale,
+                                fontSize: ctaHelperTextFontSize,
+                                fontWeight: ctaHelperTextWeight,
+                                lineSpacing: ctaHelperTextLineSpacing,
+                                horizontalPadding: redemptionRelativeHorizontalInset,
+                                margin: ctaHelperTextMargin
+                            )
+                        }
+
                         if config.showFooterLinks {
-                            HStack(spacing: 8) {
-                                Button(popupLocale?.poweredBy ?? "Powered by RewardsBag") {}
-                                Text("|")
-                                Button(popupLocale?.privacyPolicy ?? "Privacy Policy") {}
-                            }
-                            .font(.system(size: 10))
-                            .foregroundStyle(.gray)
-                            .lineSpacing(footerLinksLineSpacing)
-                            .padding(.top, 2)
-                            .padding(.bottom, 10)
-                            .padding(footerLinksMargin)
+                            screenshotStyleFooterLinks(
+                                reward: reward,
+                                popupLocale: popupLocale,
+                                lineSpacing: footerLinksLineSpacing,
+                                margin: footerLinksMargin
+                            )
                         }
                     }
-                    .padding(.top, contentPaddingTop)
-                    .padding(.horizontal, contentPaddingHorizontal)
+                    .padding(.top, 4 + CGFloat(contentPaddingTop))
+                    .padding(.horizontal, widgetBodyLeadingInset)
+                    .padding(.bottom, 8)
                     .background(Color.white)
                 }
                 .background(Color.white)
@@ -246,25 +227,25 @@ struct DelightHeroOfferTemplate: View {
                     RoundedRectangle(cornerRadius: theme.radius)
                         .stroke(Color.black.opacity(0.08), lineWidth: 1)
                 )
-                .overlay(alignment: .topTrailing) {
-                    if config.showCloseButton {
-                        Button {
-                            onDismiss()
-                        } label: {
-                            Image(systemName: "minus")
-                                .font(.system(size: closeButtonIconSize, weight: .bold))
-                                .foregroundStyle(closeButtonIconColor)
-                                .frame(width: closeButtonSize, height: closeButtonSize)
-                                .background(closeButtonBG)
-                                .clipShape(RoundedRectangle(cornerRadius: closeButtonCornerRadius))
-                        }
-                        .padding(.top, closeButtonTop)
-                        .padding(.trailing, closeButtonTrailing)
+                .overlay(alignment: .topLeading) {
+                    if config.showRewardLogo,
+                       let rewardLogoUrl = reward?.logo,
+                       let rewardLogoURL = URL(string: rewardLogoUrl) {
+                        rewardBadge(url: rewardLogoURL, diameter: rewardBadgeDiameter, contentPadding: rewardLogoInnerPadding)
+                            .shadow(color: Color.black.opacity(0.14), radius: 8, y: 3)
+                            .padding(rewardLogoOverlayPadding)
+                            .offset(y: rewardLogoBadgeOffsetY)
+                    } else if config.showRewardLogo {
+                        placeholderSlot(label: "Reward", height: max(44, rewardBadgeDiameter - 14))
+                            .frame(width: rewardBadgeDiameter, height: rewardBadgeDiameter)
+                            .clipShape(Circle())
+                            .padding(rewardLogoOverlayPadding)
+                            .offset(y: rewardLogoBadgeOffsetY)
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -275,23 +256,173 @@ struct DelightHeroOfferTemplate: View {
         }
     }
 
-    private func hostLogoImage() -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.white)
-                .frame(width: 168, height: 40)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-                )
+    @ViewBuilder
+    private func heroBanner(reward: DelightPopupRewardDTO?, height: CGFloat) -> some View {
+        Group {
+            if let imageUrl = reward?.postPopupMobileImage ?? reward?.postPopupWebImage,
+               let imageURL = URL(string: imageUrl) {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        imagePlaceholder
+                    }
+                }
+            } else {
+                imagePlaceholder
+            }
+        }
+        .frame(height: height)
+        .frame(maxWidth: .infinity)
+        .clipped()
+    }
 
-            HStack(spacing: 6) {
-                Image(systemName: "circlebadge.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Color.blue)
-                Text("Stagecoach")
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(Color.black.opacity(0.85))
+    @ViewBuilder
+    private func rewardBadge(url: URL, diameter: CGFloat, contentPadding: EdgeInsets) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.white)
+            logoImage(url: url, height: diameter, maxWidth: diameter)
+                .padding(contentPadding)
+                .frame(width: diameter, height: diameter)
+                .clipShape(Circle())
+        }
+        .frame(width: diameter, height: diameter)
+        .overlay(
+            Circle()
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+    }
+
+    private func compactTermsDisclaimer(_ termsHtml: String?) -> String? {
+        let plain = termsHtml?
+            .htmlToPlainText()
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !plain.isEmpty else { return nil }
+        if plain.count <= 140 { return plain }
+        if let range = plain.range(of: ". ") {
+            return String(plain[..<range.upperBound]).trimmingCharacters(in: .whitespaces)
+        }
+        return String(plain.prefix(136)).trimmingCharacters(in: .whitespacesAndNewlines) + "…"
+    }
+
+    /// Older SDK snapshots may omit these fields on decodable DTOs; use reflection so the template still compiles everywhere.
+    private func redemptionBodyLine(_ rewardLocale: DelightPopupRewardLocaleDTO?) -> String? {
+        mirrorOptionalString(label: "emailDisclaimer", in: rewardLocale)
+            ?? rewardLocale?.ctaHelperText
+    }
+
+    private func partnerTermsLinkLabel(_ popupLocale: DelightPopupLocaleDTO?) -> String {
+        mirrorOptionalString(label: "partnerTerms", in: popupLocale)
+            ?? "Partner Terms & Conditions"
+    }
+
+    private func mirrorOptionalString(label: String, in value: Any?) -> String? {
+        guard let value else { return nil }
+        let mirror = Mirror(reflecting: value)
+        for child in mirror.children where child.label == label {
+            return mirrorUnwrapOptionalString(child.value)
+        }
+        return nil
+    }
+
+    private func mirrorUnwrapOptionalString(_ any: Any) -> String? {
+        if let direct = any as? String {
+            return direct
+        }
+        let mirror = Mirror(reflecting: any)
+        guard mirror.displayStyle == .optional else {
+            return any as? String
+        }
+        for child in mirror.children {
+            if let s = child.value as? String {
+                return s
+            }
+        }
+        return nil
+    }
+
+    @ViewBuilder
+    private func redemptionNote(
+        rewardLocale: DelightPopupRewardLocaleDTO?,
+        fontSize: CGFloat,
+        fontWeight: Font.Weight,
+        lineSpacing: CGFloat,
+        horizontalPadding: CGFloat,
+        margin: EdgeInsets
+    ) -> some View {
+        let raw = redemptionBodyLine(rewardLocale)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        Group {
+            if let raw, !raw.isEmpty {
+                Text(raw)
+                    .font(.system(size: max(11, fontSize), weight: fontWeight))
+                    .foregroundStyle(supportingTextColor)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(lineSpacing)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(margin)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func screenshotStyleFooterLinks(
+        reward: DelightPopupRewardDTO?,
+        popupLocale: DelightPopupLocaleDTO?,
+        lineSpacing: CGFloat,
+        margin: EdgeInsets
+    ) -> some View {
+        let partnerTermsLabel = partnerTermsLinkLabel(popupLocale)
+        let poweredByLabel = popupLocale?.poweredBy ?? "Powered by RewardsBag"
+        let privacyLabel = popupLocale?.privacyPolicy ?? "Privacy Policy"
+        HStack(spacing: 6) {
+            footerLink(title: partnerTermsLabel, rawUrl: mirrorOptionalString(label: "partnerTermsUrl", in: reward))
+            Text("|")
+                .foregroundStyle(supportingTextColor)
+                .accessibilityHidden(true)
+            footerLink(title: poweredByLabel, rawUrl: mirrorOptionalString(label: "poweredByUrl", in: reward))
+            Text("|")
+                .foregroundStyle(supportingTextColor)
+                .accessibilityHidden(true)
+            footerLink(title: privacyLabel, rawUrl: mirrorOptionalString(label: "privacyPolicyUrl", in: reward))
+        }
+        .font(.system(size: 9, weight: .medium))
+        .foregroundStyle(supportingTextColor)
+        .lineSpacing(lineSpacing)
+        .lineLimit(1)
+        .minimumScaleFactor(0.65)
+        .allowsTightening(true)
+        .frame(maxWidth: .infinity)
+        .padding(margin)
+    }
+
+    private func footerLink(title: String, rawUrl: String?) -> some View {
+        Button {
+            guard let url = resolvedCTAUrl(from: rawUrl) else { return }
+            openRewardURL(url)
+        } label: {
+            Text(title)
+                .underline()
+        }
+        .buttonStyle(.plain)
+        .disabled(resolvedCTAUrl(from: rawUrl) == nil)
+        .opacity(resolvedCTAUrl(from: rawUrl) == nil ? 0.6 : 1)
+    }
+
+    private func openRewardURL(_ url: URL) {
+        openURL(url) { accepted in
+            if accepted {
+                return
+            }
+            UIApplication.shared.open(url, options: [:]) { opened in
+                if !opened {
+                    safariFallbackRoute = SafariFallbackRoute(url: url)
+                }
             }
         }
     }
@@ -334,6 +465,10 @@ struct DelightHeroOfferTemplate: View {
                     .font(.system(size: 60, weight: .light))
                     .foregroundStyle(Color.black.opacity(0.5))
             )
+    }
+
+    private var supportingTextColor: Color {
+        Color.black.opacity(0.56)
     }
 
     private func placeholderSlot(label: String, height: CGFloat) -> some View {

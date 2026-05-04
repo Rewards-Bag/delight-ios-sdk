@@ -1,5 +1,9 @@
 import Foundation
 
+// All JSON decodable models belong in DelightConfigModels.swift only.
+// Duplicating structs like DelightConfigDTO here causes Swift to report
+// "'DelightConfigDTO' is ambiguous for type lookup" and the sdk target fails to compile.
+
 enum DelightConfigService {
     static func fetchConfig(
         brandName: String,

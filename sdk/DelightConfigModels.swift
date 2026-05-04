@@ -18,6 +18,7 @@ struct DelightPopupLocaleDTO: Decodable {
     let orderLine: String?
     let cta: String?
     let secondaryCta: String?
+    let partnerTerms: String?
     let terms: DelightPopupTermsLocaleDTO?
     let poweredBy: String?
     let privacyPolicy: String?
@@ -34,15 +35,19 @@ struct DelightPopupRewardDTO: Decodable {
     let postPopupMobileImage: String?
     let postPopupWebImage: String?
     let logo: String?
+    let partnerTermsUrl: String?
     let privacyPolicyUrl: String?
     let poweredByUrl: String?
     let locales: [String: DelightPopupRewardLocaleDTO]?
+    let ticketType: String?
+    let ageRequirement: String?
 }
 
 struct DelightPopupRewardLocaleDTO: Decodable {
     let headline: String?
     let description: String?
     let ctaHelperText: String?
+    let emailDisclaimer: String?
     let terms: String?
     let cta: String?
 }
@@ -87,6 +92,7 @@ struct DelightCTAThemeDTO: Decodable {
     let fontWeight: String?
     let lineHeight: String?
     let minHeight: String?
+    let padding: DelightPaddingDTO?
     let margin: DelightSpacingDTO?
 }
 
@@ -108,6 +114,10 @@ struct DelightTextThemeDTO: Decodable {
 }
 
 struct DelightAssetThemeDTO: Decodable {
+    /// Web-style positioning (often px-less numbers in CDN JSON).
+    let left: String?
+    let top: String?
+    let width: String?
     let show: Bool?
     let padding: DelightPaddingDTO?
     let height: String?
@@ -207,7 +217,7 @@ extension DelightConfigDTO {
     }
 
     var contentGap: Double {
-        parsePixelValue(popup?.theme?.widgetContentContainer?.gap) ?? 14
+        parsePixelValue(popup?.theme?.widgetContentContainer?.gap) ?? 0
     }
 
     var contentPaddingTop: Double {
@@ -244,6 +254,19 @@ extension DelightConfigDTO {
 
     var rewardLogoMargin: DelightComponentInsets {
         parseInsets(popup?.theme?.rewardLogo?.margin)
+    }
+
+    /// Inner padding inside the circular reward logo badge (`theme.rewardLogo.padding`). Absent ⇒ 0 on all sides.
+    var rewardLogoPadding: DelightComponentInsets {
+        guard let padding = popup?.theme?.rewardLogo?.padding else {
+            return DelightComponentInsets(top: 0, right: 0, bottom: 0, left: 0)
+        }
+        return DelightComponentInsets(
+            top: parsePixelValue(padding.top) ?? 0,
+            right: parsePixelValue(padding.right) ?? 0,
+            bottom: parsePixelValue(padding.bottom) ?? 0,
+            left: parsePixelValue(padding.left) ?? 0
+        )
     }
 
     var showCloseButton: Bool {
@@ -340,6 +363,19 @@ extension DelightConfigDTO {
 
     var ctaButtonMargin: DelightComponentInsets {
         parseInsets(popup?.theme?.cta?.margin)
+    }
+
+    /// Inner padding for the CTA label (maps `theme.cta.padding` from config JSON).
+    var ctaButtonPadding: DelightComponentInsets {
+        guard let padding = popup?.theme?.cta?.padding else {
+            return DelightComponentInsets(top: 12, right: 20, bottom: 12, left: 20)
+        }
+        return DelightComponentInsets(
+            top: parsePixelValue(padding.top) ?? 0,
+            right: parsePixelValue(padding.right) ?? 0,
+            bottom: parsePixelValue(padding.bottom) ?? 0,
+            left: parsePixelValue(padding.left) ?? 0
+        )
     }
 
     var showFooterLinks: Bool {
