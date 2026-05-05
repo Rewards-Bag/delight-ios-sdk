@@ -30,7 +30,7 @@ public enum Delight {
         DelightPopupController.shared.ignoreCooldownForLocalDevelopment = ignoreCooldownForLocalDevelopment
     }
 
-    public static func showReward(
+    public static func showRewardPopup(
         _ payload: DelightRequestPayload,
         callbacks: DelightCallbacks = .init()
     ) {
@@ -38,6 +38,14 @@ public enum Delight {
             payload: payloadWithResolvedUserToken(payload),
             callbacks: callbacks
         )
+    }
+
+    @available(*, deprecated, renamed: "showRewardPopup(_:callbacks:)")
+    public static func showReward(
+        _ payload: DelightRequestPayload,
+        callbacks: DelightCallbacks = .init()
+    ) {
+        showRewardPopup(payload, callbacks: callbacks)
     }
 
     public static func dismiss() {

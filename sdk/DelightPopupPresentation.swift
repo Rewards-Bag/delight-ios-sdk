@@ -16,7 +16,7 @@ public struct DelightPopupView: View {
     }
 
     public static func show(orderId: String, email: String, firstName: String, lastName: String) {
-        Delight.showReward(
+        Delight.showRewardPopup(
             DelightRequestPayload(
                 orderId: orderId,
                 email: email,
