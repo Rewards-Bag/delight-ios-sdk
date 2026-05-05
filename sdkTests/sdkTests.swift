@@ -1,36 +1,143 @@
-//
-//  sdkTests.swift
-//  sdkTests
-//
-//  Created by Oleks on 4/9/26.
-//
-
 import XCTest
+#if SWIFT_PACKAGE
+@testable import DelightSDK
+#else
 @testable import sdk
+#endif
 
-final class sdkTests: XCTestCase {
+final class DelightSDKTests: XCTestCase {
+    func testResolvedRewardsFiltersHiddenRewards() {
+        let config = makeConfig(
+            rewards: [
+                makeReward(id: "visible", show: true),
+                makeReward(id: "hidden", show: false)
+            ]
+        )
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        let ids = config.resolvedRewards.compactMap(\.id)
+        XCTAssertEqual(ids, ["visible"])
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testSelectConfigSuppresses18PlusForChildTicketType() {
+        let config = makeConfig(
+            rewards: [
+                makeReward(id: "adult-18", ticketType: "adult", ageRequirement: "18+"),
+                makeReward(id: "child-safe", ticketType: "child", ageRequirement: "none")
+            ]
+        )
+        let payload = makePayload(ticketTypes: ["child"])
+
+        let selected = DelightRewardSelectionService.selectConfig(
+            from: config,
+            payload: payload,
+            ignoreLocalRulesForTesting: true,
+            ignoreCooldownForLocalDevelopment: true
+        )
+
+        XCTAssertEqual(selected?.popup?.rewards?.first?.id, "child-safe")
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    func testSelectConfigPrioritizesMatchingTicketType() {
+        let config = makeConfig(
+            rewards: [
+                makeReward(id: "adult-first", ticketType: "adult"),
+                makeReward(id: "student-second", ticketType: "student")
+            ]
+        )
+        let payload = makePayload(ticketTypes: ["student"])
+
+        let selected = DelightRewardSelectionService.selectConfig(
+            from: config,
+            payload: payload,
+            ignoreLocalRulesForTesting: true,
+            ignoreCooldownForLocalDevelopment: true
+        )
+
+        XCTAssertEqual(selected?.popup?.rewards?.first?.id, "student-second")
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func testSelectConfigReturnsNilWhenAllRewardsHidden() {
+        let config = makeConfig(
+            rewards: [
+                makeReward(id: "hidden-1", show: false),
+                makeReward(id: "hidden-2", show: false)
+            ]
+        )
+        let payload = makePayload(ticketTypes: ["adult"])
+
+        let selected = DelightRewardSelectionService.selectConfig(
+            from: config,
+            payload: payload,
+            ignoreLocalRulesForTesting: true,
+            ignoreCooldownForLocalDevelopment: true
+        )
+
+        XCTAssertNil(selected)
     }
 
+    func testSelectConfigFallsBackToConfigOrderWhenNoTicketTypeMatch() {
+        let config = makeConfig(
+            rewards: [
+                makeReward(id: "adult-first", ticketType: "adult"),
+                makeReward(id: "student-second", ticketType: "student")
+            ]
+        )
+        let payload = makePayload(ticketTypes: ["concession"])
+
+        let selected = DelightRewardSelectionService.selectConfig(
+            from: config,
+            payload: payload,
+            ignoreLocalRulesForTesting: true,
+            ignoreCooldownForLocalDevelopment: true
+        )
+
+        XCTAssertEqual(selected?.popup?.rewards?.first?.id, "adult-first")
+    }
+}
+
+private func makeConfig(rewards: [DelightPopupRewardDTO]) -> DelightConfigDTO {
+    DelightConfigDTO(
+        partnerLogo: nil,
+        language: "en",
+        popup: DelightPopupSectionDTO(
+            enabled: true,
+            defaultLocale: "en",
+            locales: nil,
+            theme: nil,
+            rewards: rewards
+        )
+    )
+}
+
+private func makeReward(
+    id: String,
+    show: Bool = true,
+    ticketType: String? = nil,
+    ageRequirement: String? = nil
+) -> DelightPopupRewardDTO {
+    DelightPopupRewardDTO(
+        id: id,
+        show: show,
+        ctaUrl: nil,
+        postPopupMobileImage: nil,
+        postPopupWebImage: nil,
+        logo: nil,
+        partnerTermsUrl: nil,
+        privacyPolicyUrl: nil,
+        poweredByUrl: nil,
+        locales: nil,
+        ticketType: ticketType,
+        ageRequirement: ageRequirement
+    )
+}
+
+private func makePayload(ticketTypes: [String]) -> DelightRequestPayload {
+    DelightRequestPayload(
+        orderId: UUID().uuidString,
+        email: nil,
+        userToken: UUID().uuidString,
+        firstName: nil,
+        lastName: nil,
+        ticketTypes: ticketTypes
+    )
 }
