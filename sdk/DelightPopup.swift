@@ -16,16 +16,25 @@ public enum Delight {
         ignoreCooldownForLocalDevelopment: Bool = false
     ) async throws {
         _ = localSDKUserToken()
-        let config: DelightConfigDTO
-        if useBundledConfig {
-            config = try DelightConfigService.loadBundledConfig()
-        } else {
-            config = try await DelightConfigService.fetchConfig(
-                brandName: brandName,
-                cdnBaseURL: cdnBaseURL
-            )
+        do {
+            let config: DelightConfigDTO
+            if useBundledConfig {
+                config = try DelightConfigService.loadBundledConfig()
+            } else {
+                config = try await DelightConfigService.fetchConfig(
+                    brandName: brandName,
+                    cdnBaseURL: cdnBaseURL
+                )
+            }
+            DelightPopupController.shared.config = config
+            DelightPopupController.shared.clearInitializationError()
+        } catch {
+            // Crash isolation: never throw initialization failures into host apps.
+            let message = "Failed to initialize Delight SDK config: \(error.localizedDescription)"
+            logError(message)
+            DelightPopupController.shared.config = safeEmptyConfig()
+            DelightPopupController.shared.reportInitializationError(message)
         }
-        DelightPopupController.shared.config = config
         DelightPopupController.shared.ignoreLocalRulesForTesting = ignoreLocalRulesForTesting
         DelightPopupController.shared.ignoreCooldownForLocalDevelopment = ignoreCooldownForLocalDevelopment
     }
@@ -74,5 +83,25 @@ public enum Delight {
         let created = UUID().uuidString.lowercased()
         defaults.set(created, forKey: sdkUserTokenDefaultsKey)
         return created
+    }
+
+    private static func safeEmptyConfig() -> DelightConfigDTO {
+        DelightConfigDTO(
+            partnerLogo: nil,
+            language: "en",
+            popup: DelightPopupSectionDTO(
+                enabled: false,
+                defaultLocale: "en",
+                locales: nil,
+                theme: nil,
+                rewards: []
+            )
+        )
+    }
+
+    private static func logError(_ message: String) {
+#if DEBUG
+        print("Delight SDK Error:", message)
+#endif
     }
 }

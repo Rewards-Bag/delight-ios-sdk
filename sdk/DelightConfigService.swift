@@ -15,7 +15,13 @@ enum DelightConfigService {
         let path = "configs/\(normalizedBrand).json"
         let endpoint = cdnBaseURL.appendingPathComponent(path)
         do {
-            let (data, response) = try await URLSession.shared.data(from: endpoint)
+            var request = URLRequest(url: endpoint)
+            request.timeoutInterval = 5
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.timeoutIntervalForRequest = 5
+            configuration.timeoutIntervalForResource = 5
+            let session = URLSession(configuration: configuration)
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
                 throw URLError(.badServerResponse)
             }

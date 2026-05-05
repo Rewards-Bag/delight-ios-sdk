@@ -29,15 +29,18 @@ public struct DelightCallbacks {
     public var onImpression: ((String?) -> Void)?
     public var onPrimaryClick: ((String?) -> Void)?
     public var onDismiss: (() -> Void)?
+    public var onError: ((String) -> Void)?
 
     public init(
         onImpression: ((String?) -> Void)? = nil,
         onPrimaryClick: ((String?) -> Void)? = nil,
-        onDismiss: (() -> Void)? = nil
+        onDismiss: (() -> Void)? = nil,
+        onError: ((String) -> Void)? = nil
     ) {
         self.onImpression = onImpression
         self.onPrimaryClick = onPrimaryClick
         self.onDismiss = onDismiss
+        self.onError = onError
     }
 }
 

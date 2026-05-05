@@ -26,7 +26,7 @@ public final class DelightObjC: NSObject {
     }
 
     /// Objective-C bridge for showing a reward popup.
-    @objc(showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:)
+    @objc(showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onError:)
     public static func showRewardPopup(
         _ orderId: String?,
         email: String?,
@@ -36,7 +36,8 @@ public final class DelightObjC: NSObject {
         ticketTypes: [String],
         onImpression: ((NSString?) -> Void)?,
         onPrimaryClick: ((NSString?) -> Void)?,
-        onDismiss: (() -> Void)?
+        onDismiss: (() -> Void)?,
+        onError: ((NSString) -> Void)?
     ) {
         let payload = DelightRequestPayload(
             orderId: orderId,
@@ -57,14 +58,17 @@ public final class DelightObjC: NSObject {
         callbacks.onDismiss = {
             onDismiss?()
         }
+        callbacks.onError = { message in
+            onError?(message as NSString)
+        }
 
         Task { @MainActor in
             Delight.showRewardPopup(payload, callbacks: callbacks)
         }
     }
 
-    @available(*, deprecated, renamed: "showRewardPopup(_:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:)")
-    @objc(showReward:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:)
+    @available(*, deprecated, renamed: "showRewardPopup(_:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onError:)")
+    @objc(showReward:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onError:)
     public static func showReward(
         _ orderId: String?,
         email: String?,
@@ -74,7 +78,8 @@ public final class DelightObjC: NSObject {
         ticketTypes: [String],
         onImpression: ((NSString?) -> Void)?,
         onPrimaryClick: ((NSString?) -> Void)?,
-        onDismiss: (() -> Void)?
+        onDismiss: (() -> Void)?,
+        onError: ((NSString) -> Void)?
     ) {
         showRewardPopup(
             orderId,
@@ -85,7 +90,8 @@ public final class DelightObjC: NSObject {
             ticketTypes: ticketTypes,
             onImpression: onImpression,
             onPrimaryClick: onPrimaryClick,
-            onDismiss: onDismiss
+            onDismiss: onDismiss,
+            onError: onError
         )
     }
 

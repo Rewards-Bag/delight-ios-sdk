@@ -26,12 +26,17 @@ final class DelightPopupController: ObservableObject {
     private var didRecordIgnoreForCurrentPresentation = false
     private var didCommitVisibleImpression = false
     private var didRegisterVisibleSession = false
+    private var initializationErrorMessage: String?
 
     private init() {}
 
     func show(payload: DelightRequestPayload, callbacks: DelightCallbacks) {
         self.payload = payload
         self.callbacks = callbacks
+        if let initializationErrorMessage {
+            handleNonDisplayableError(initializationErrorMessage)
+            return
+        }
         self.state = .loading
         resetPresentationTracking()
         Task { await fetchConfigAndBuildPopup() }
@@ -78,9 +83,17 @@ final class DelightPopupController: ObservableObject {
         }
     }
 
+    func reportInitializationError(_ message: String) {
+        initializationErrorMessage = message
+    }
+
+    func clearInitializationError() {
+        initializationErrorMessage = nil
+    }
+
     private func fetchConfigAndBuildPopup() async {
         guard payload != nil else {
-            state = .failed("Missing payload")
+            handleNonDisplayableError("Missing payload")
             return
         }
 
@@ -93,23 +106,23 @@ final class DelightPopupController: ObservableObject {
                 self.config = bundledConfig
                 resolvedConfig = bundledConfig
             } catch {
-                state = .failed("SDK not initialized and bundled config is unavailable.")
+                handleNonDisplayableError("SDK not initialized and bundled config is unavailable.")
                 return
             }
         }
 
         guard let popup = resolvedConfig.popup, popup.enabled == true else {
-            state = .failed("Popup config missing or disabled")
+            handleNonDisplayableError("Popup config missing or disabled")
             return
         }
 
         guard DelightTemplateRegistry.supports(templateId: resolvedConfig.templateId) else {
-            state = .failed("Unsupported template: \(resolvedConfig.templateId)")
+            handleNonDisplayableError("Unsupported template: \(resolvedConfig.templateId)")
             return
         }
 
         guard let payload else {
-            state = .failed("Missing payload")
+            handleNonDisplayableError("Missing payload")
             return
         }
 
@@ -119,6 +132,7 @@ final class DelightPopupController: ObservableObject {
             ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
             ignoreCooldownForLocalDevelopment: ignoreCooldownForLocalDevelopment
         ) else {
+            callbacks.onError?("No eligible rewards available for current context.")
             isPresented = false
             state = .hidden
             resetPresentationTracking()
@@ -171,5 +185,12 @@ final class DelightPopupController: ObservableObject {
         didRecordIgnoreForCurrentPresentation = false
         didCommitVisibleImpression = false
         didRegisterVisibleSession = false
+    }
+
+    private func handleNonDisplayableError(_ message: String) {
+        callbacks.onError?(message)
+        isPresented = false
+        state = .hidden
+        resetPresentationTracking()
     }
 }

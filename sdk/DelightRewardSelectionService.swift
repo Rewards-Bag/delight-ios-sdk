@@ -76,6 +76,20 @@ enum DelightRewardSelectionService {
         )
     }
 
+    /// Backward-compatible overload for call sites that don't pass cooldown bypass explicitly.
+    static func selectConfig(
+        from config: DelightConfigDTO,
+        payload: DelightRequestPayload,
+        ignoreLocalRulesForTesting: Bool
+    ) -> DelightConfigDTO? {
+        selectConfig(
+            from: config,
+            payload: payload,
+            ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
+            ignoreCooldownForLocalDevelopment: false
+        )
+    }
+
     /// Call when the popup is actually on-screen (one per presentation).
     static func recordVisibleImpression(
         payload: DelightRequestPayload,
