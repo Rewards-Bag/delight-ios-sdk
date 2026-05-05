@@ -258,7 +258,8 @@ struct DelightHeroOfferTemplate: View {
     private func bodyColumnBottomPadding(includeFooterSafeArea: Bool) -> CGFloat {
         let base: CGFloat = 8
         guard includeFooterSafeArea else { return base }
-        return base + keyWindowBottomSafeAreaInset
+        let tightenedSafeArea = max(8, keyWindowBottomSafeAreaInset - 20)
+        return base + tightenedSafeArea
     }
 
     private var keyWindowBottomSafeAreaInset: CGFloat {
