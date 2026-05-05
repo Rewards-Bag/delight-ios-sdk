@@ -17,7 +17,8 @@ let package = Package(
             name: "DelightSDK",
             path: "sdk",
             resources: [
-                .process("config.json")
+                .process("config.json"),
+                .process("PrivacyInfo.xcprivacy")
             ]
         ),
         .testTarget(

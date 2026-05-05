@@ -152,6 +152,12 @@ ignoreCooldownForLocalDevelopment:NO
 
 For `DelightObjC showRewardPopup`, only `ticketTypes` is required. `orderId`, `email`, `userToken`, `firstName`, and `lastName` are optional.
 
+## Privacy
+
+- `PrivacyInfo.xcprivacy` ships with the SDK. No host-app declarations are required for SDK behavior.
+- The SDK does not use any APIs requiring App Tracking Transparency.
+- The SDK does not access IDFA, advertising identifiers, or device fingerprinting.
+
 ## Notes
 
 - Footer links, CTA handling, and local suppression are handled by the SDK.
