@@ -6,11 +6,14 @@ public enum Delight {
 
     /// - Parameters:
     ///   - useBundledConfig: When `true`, loads `config.json` from the app bundle (e.g. `sdk/config.json` copied into the target) and skips the CDN. Use for local testing.
+    ///   - ignoreLocalRulesForTesting: When `true`, skips the monthly impression cap and 24h cooldown (QA only).
+    ///   - ignoreCooldownForLocalDevelopment: When `true`, skips **only** the 24h cooldown so you can trigger another popup on every run; monthly cap and per-reward suppression still apply. Use for local development, not production.
     public static func initialize(
         brandName: String,
         cdnBaseURL: URL = URL(string: "https://cdn.rewardsbag.com")!,
         useBundledConfig: Bool = false,
-        ignoreLocalRulesForTesting: Bool = false
+        ignoreLocalRulesForTesting: Bool = false,
+        ignoreCooldownForLocalDevelopment: Bool = false
     ) async throws {
         _ = localSDKUserToken()
         let config: DelightConfigDTO
@@ -24,6 +27,7 @@ public enum Delight {
         }
         DelightPopupController.shared.config = config
         DelightPopupController.shared.ignoreLocalRulesForTesting = ignoreLocalRulesForTesting
+        DelightPopupController.shared.ignoreCooldownForLocalDevelopment = ignoreCooldownForLocalDevelopment
     }
 
     public static func showReward(

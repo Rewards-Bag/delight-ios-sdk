@@ -12,7 +12,6 @@ enum DelightPopupState {
 @MainActor
 final class DelightPopupController: ObservableObject {
     static let shared = DelightPopupController()
-    private static let minimumVisibleSecondsForIgnore: TimeInterval = 3
 
     @Published var isPresented = false
     @Published var state: DelightPopupState = .idle
@@ -20,10 +19,13 @@ final class DelightPopupController: ObservableObject {
     @Published var callbacks: DelightCallbacks = .init()
     @Published var config: DelightConfigDTO?
     @Published var ignoreLocalRulesForTesting = false
+    var ignoreCooldownForLocalDevelopment = false
+
     private var currentRewardId: String?
-    private var presentedAt: Date?
     private var didClickCurrentReward = false
-    private var dismissedViaTemplateCloseButton = false
+    private var didRecordIgnoreForCurrentPresentation = false
+    private var didCommitVisibleImpression = false
+    private var didRegisterVisibleSession = false
 
     private init() {}
 
@@ -44,33 +46,36 @@ final class DelightPopupController: ObservableObject {
     }
 
     func dismiss() {
-        processPotentialIgnore()
+        recordIgnoreIfNoClick()
         isPresented = false
-        callbacks.onDismiss?()
         state = .hidden
         resetPresentationTracking()
     }
 
+    func handleSheetDidDismiss() {
+        recordIgnoreIfNoClick()
+        callbacks.onDismiss?()
+        resetPresentationTracking()
+        state = .hidden
+    }
+
+    func markPopupBecameVisible() {
+        guard !didRegisterVisibleSession else { return }
+        didRegisterVisibleSession = true
+        let now = Date()
+        commitVisibleImpressionIfNeeded(at: now)
+        callbacks.onImpression?(currentRewardId)
+    }
+
     func markDismissedByCloseButton() {
-        dismissedViaTemplateCloseButton = true
+        recordIgnoreIfNoClick()
     }
 
     func markRewardClicked(_ rewardId: String?) {
         didClickCurrentReward = true
         if let payload {
-            DelightRewardSelectionService.recordClick(
-                payload: payload,
-                rewardId: rewardId,
-                ignoreLocalRulesForTesting: ignoreLocalRulesForTesting
-            )
+            DelightRewardSelectionService.recordClick(payload: payload, rewardId: rewardId)
         }
-    }
-
-    func handleSheetDidDismiss() {
-        // Covers system gestures (swipe-down/background dismiss) where template onDismiss is not called.
-        processPotentialIgnore()
-        resetPresentationTracking()
-        state = .hidden
     }
 
     private func fetchConfigAndBuildPopup() async {
@@ -111,7 +116,8 @@ final class DelightPopupController: ObservableObject {
         guard let selectedConfig = DelightRewardSelectionService.selectConfig(
             from: resolvedConfig,
             payload: payload,
-            ignoreLocalRulesForTesting: ignoreLocalRulesForTesting
+            ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
+            ignoreCooldownForLocalDevelopment: ignoreCooldownForLocalDevelopment
         ) else {
             isPresented = false
             state = .hidden
@@ -123,37 +129,47 @@ final class DelightPopupController: ObservableObject {
         let theme = DelightPopupTheme.fromBrandTheme(selectedConfig.popup?.theme)
         state = .ready(selectedConfig, theme, selectedRewardId)
         currentRewardId = selectedRewardId
-        presentedAt = Date()
         didClickCurrentReward = false
-        dismissedViaTemplateCloseButton = false
         isPresented = true
     }
 
-    private func processPotentialIgnore() {
+    private func commitVisibleImpressionIfNeeded(at date: Date) {
         guard
+            !didCommitVisibleImpression,
+            let payload,
+            let rewardId = currentRewardId,
+            !rewardId.isEmpty
+        else { return }
+        didCommitVisibleImpression = true
+        DelightRewardSelectionService.recordVisibleImpression(
+            payload: payload,
+            rewardId: rewardId,
+            at: date
+        )
+    }
+
+    private func recordIgnoreIfNoClick() {
+        guard
+            !didRecordIgnoreForCurrentPresentation,
             let payload,
             let rewardId = currentRewardId,
             !rewardId.isEmpty,
             !didClickCurrentReward
         else { return }
 
-        let now = Date()
-        let visibleDuration = now.timeIntervalSince(presentedAt ?? now)
-        let isIgnored = dismissedViaTemplateCloseButton || visibleDuration >= Self.minimumVisibleSecondsForIgnore
-        if isIgnored {
-            DelightRewardSelectionService.recordIgnore(
-                payload: payload,
-                rewardId: rewardId,
-                at: now,
-                ignoreLocalRulesForTesting: ignoreLocalRulesForTesting
-            )
-        }
+        didRecordIgnoreForCurrentPresentation = true
+        DelightRewardSelectionService.recordIgnore(
+            payload: payload,
+            rewardId: rewardId,
+            at: Date()
+        )
     }
 
     private func resetPresentationTracking() {
         currentRewardId = nil
-        presentedAt = nil
         didClickCurrentReward = false
-        dismissedViaTemplateCloseButton = false
+        didRecordIgnoreForCurrentPresentation = false
+        didCommitVisibleImpression = false
+        didRegisterVisibleSession = false
     }
 }

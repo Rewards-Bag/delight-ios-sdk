@@ -218,7 +218,7 @@ struct DelightHeroOfferTemplate: View {
                     }
                     .padding(.top, 4 + CGFloat(contentPaddingTop))
                     .padding(.horizontal, widgetBodyLeadingInset)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, bodyColumnBottomPadding(includeFooterSafeArea: config.showFooterLinks))
                     .background(Color.white)
                 }
                 .background(Color.white)
@@ -245,7 +245,6 @@ struct DelightHeroOfferTemplate: View {
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.top, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -254,6 +253,20 @@ struct DelightHeroOfferTemplate: View {
         .sheet(item: $safariFallbackRoute) { route in
             SafariFallbackView(url: route.url)
         }
+    }
+
+    private func bodyColumnBottomPadding(includeFooterSafeArea: Bool) -> CGFloat {
+        let base: CGFloat = 8
+        guard includeFooterSafeArea else { return base }
+        return base + keyWindowBottomSafeAreaInset
+    }
+
+    private var keyWindowBottomSafeAreaInset: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .safeAreaInsets.bottom ?? 0
     }
 
     @ViewBuilder
