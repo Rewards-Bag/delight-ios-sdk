@@ -198,6 +198,7 @@ final class DelightPopupController: ObservableObject {
     }
 
     private func handleNonDisplayableError(_ message: String) {
+        logError(message)
         callbacks.onError?(message)
         isPresented = false
         state = .hidden
@@ -227,6 +228,7 @@ final class DelightPopupController: ObservableObject {
             } catch {
                 let message = "Failed to track reward impression: \(error.localizedDescription)"
                 await MainActor.run {
+                    self.logError(message)
                     self.callbacks.onError?(message)
                 }
             }
@@ -268,6 +270,7 @@ final class DelightPopupController: ObservableObject {
                 } catch {
                     let message = "Failed to track reward claim: \(error.localizedDescription)"
                     await MainActor.run {
+                        self.logError(message)
                         self.callbacks.onError?(message)
                     }
                 }
@@ -283,18 +286,36 @@ final class DelightPopupController: ObservableObject {
         return "\(brandPrefix)-\(timestampMs)"
     }
 
+    private func logError(_ message: String) {
+#if DEBUG
+        print("Delight SDK Error:", message)
+#endif
+    }
+
     private func runWithBackgroundExecution(
         operation: @escaping @Sendable () async -> Void
     ) async {
 #if canImport(UIKit)
+        let taskName = "DelightRewardClaimTracking-\(UUID().uuidString)"
         var taskId = UIBackgroundTaskIdentifier.invalid
-        taskId = UIApplication.shared.beginBackgroundTask(withName: "DelightRewardClaimTracking") {
-            UIApplication.shared.endBackgroundTask(taskId)
-            taskId = .invalid
+        var operationTask: Task<Void, Never>?
+
+        taskId = UIApplication.shared.beginBackgroundTask(withName: taskName) {
+            operationTask?.cancel()
+            if taskId != .invalid {
+                UIApplication.shared.endBackgroundTask(taskId)
+                taskId = .invalid
+            }
         }
-        await operation()
+
+        operationTask = Task {
+            await operation()
+        }
+        await operationTask?.value
+
         if taskId != .invalid {
             UIApplication.shared.endBackgroundTask(taskId)
+            taskId = .invalid
         }
 #else
         await operation()

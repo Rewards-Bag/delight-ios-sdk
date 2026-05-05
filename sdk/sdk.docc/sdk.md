@@ -87,6 +87,10 @@ ignoreCooldownForLocalDevelopment:NO
 - The SDK does not use any APIs requiring App Tracking Transparency.
 - The SDK does not access IDFA, advertising identifiers, or device fingerprinting.
 
+## Error Handling
+
+If the API is unreachable, returns an error, or configuration is invalid, the SDK fires the error callback and does not display the popup.
+
 ## Topics
 
 ### Swift API

@@ -32,6 +32,7 @@ public enum Delight {
         } catch {
             // Crash isolation: never throw initialization failures into host apps.
             let message = "Failed to initialize Delight SDK config: \(error.localizedDescription)"
+            logError(message)
             DelightPopupController.shared.config = safeEmptyConfig()
             DelightPopupController.shared.setInitializedBrandName(brandName)
             DelightPopupController.shared.reportInitializationError(message)
@@ -100,6 +101,12 @@ public enum Delight {
                 rewards: []
             )
         )
+    }
+
+    private static func logError(_ message: String) {
+#if DEBUG
+        print("Delight SDK Error:", message)
+#endif
     }
 
 }

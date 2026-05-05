@@ -281,7 +281,7 @@ private struct UserRewardState: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         globalImpressions = try container.decodeIfPresent([Date].self, forKey: .globalImpressions) ?? []
-        rewardStates = try container.decodeIfPresent([String: RewardState].self, forKey: .rewardStates) ?? []
+        rewardStates = try container.decodeIfPresent([String: RewardState].self, forKey: .rewardStates) ?? [:]
         lastShownRewardId = try container.decodeIfPresent(String.self, forKey: .lastShownRewardId)
     }
 
