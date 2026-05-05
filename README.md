@@ -1,60 +1,158 @@
 # DelightSDK
 
-DelightSDK is an iOS SDK that presents post-purchase reward popups with local suppression logic and configurable templates.
+DelightSDK is an iOS SDK for showing post-purchase reward popups with local suppression rules and configurable templates.
 
 ## Requirements
 
 - iOS 16+
 - Swift 5.9+
 
-## Installation (Swift Package Manager)
+## Add The Package (SPM)
 
-In Xcode:
+### Xcode UI
 
-1. **File > Add Packages...**
-2. Enter your repository URL (for example: `https://github.com/Rewards-Bag/delight-ios-sdk.git`)
-3. Select the version/branch
+1. Go to **File > Add Packages...**
+2. Enter the repository URL (for example: `https://github.com/Rewards-Bag/delight-ios-sdk.git`)
+3. Choose a version or branch
 4. Add product **`DelightSDK`** to your app target
 
-## Quick Start
+### Package.swift
 
 ```swift
-import SwiftUI
-import DelightSDK
+dependencies: [
+    .package(url: "https://github.com/Rewards-Bag/delight-ios-sdk.git", from: "1.0.0")
+],
+targets: [
+    .target(
+        name: "YourAppTarget",
+        dependencies: [
+            .product(name: "DelightSDK", package: "delight-ios-sdk")
+        ]
+    )
+]
+```
 
-struct ContentView: View {
-    var body: some View {
-        VStack {
-            Button("Show Reward") {
-                Delight.showReward(
-                    DelightRequestPayload(
-                        orderId: nil,
-                        email: nil,
-                        firstName: nil,
-                        lastName: nil,
-                        ticketTypes: ["adult"]
-                    )
-                )
-            }
-        }
-        .overlay {
-            DelightPopupPresenter()
-        }
-        .task {
-            try? await Delight.initialize(
-                brandName: "rewardsbag-provided-brand-name"
-            )
-        }
-    }
+## Swift Integration
+
+### 1) Import the SDK
+
+```swift
+import DelightSDK
+```
+
+### 2) Initialize the SDK
+
+Call once on app startup (for example in `.task`, app launch, or bootstrap flow):
+
+```swift
+try await Delight.initialize(
+    brandName: "rewardsbag-provided-brand-name",
+    ignoreLocalRulesForTesting: false,
+    ignoreCooldownForLocalDevelopment: false
+)
+```
+
+### 3) Add the popup presenter
+
+Attach it to a high-level container so the sheet can be presented:
+
+```swift
+.overlay {
+    DelightPopupPresenter()
 }
 ```
 
-## Initialization Options
+### 4) Show a reward popup
+
+```swift
+Delight.showRewardPopup(
+    DelightRequestPayload(
+        orderId: "",
+        email: "",
+        firstName: "",
+        lastName: "",
+        ticketTypes: ["adult"]
+    ),
+    callbacks: DelightCallbacks(
+        onImpression: { rewardId in
+            print("Impression:", rewardId ?? "nil")
+        },
+        onPrimaryClick: { rewardId in
+            print("Primary click:", rewardId ?? "nil")
+        },
+        onDismiss: {
+            print("Popup dismissed")
+        }
+    )
+)
+```
+
+### 5) Dismiss programmatically (optional)
+
+```swift
+Delight.dismiss()
+```
+
+## Objective-C Integration
+
+The SDK exposes `DelightObjC` as an Objective-C bridge for initialization and popup control.
+
+### 1) Import generated Swift header
+
+```objc
+#import "YourAppModuleName-Swift.h"
+```
+
+### 2) Initialize the SDK
+
+```objc
+[DelightObjC initialize:@"rewardsbag-provided-brand-name"
+ignoreLocalRulesForTesting:NO
+ignoreCooldownForLocalDevelopment:NO
+              completion:^(NSError * _Nullable error) {
+    if (error) {
+        NSLog(@"Delight init failed: %@", error.localizedDescription);
+    }
+}];
+```
+
+### 3) Show a reward popup
+
+```objc
+[DelightObjC showRewardPopup:nil
+                  email:nil
+              userToken:nil
+              firstName:nil
+               lastName:nil
+            ticketTypes:@[@"adult"]
+           onImpression:^(NSString * _Nullable rewardId) {
+    NSLog(@"Impression: %@", rewardId);
+}
+         onPrimaryClick:^(NSString * _Nullable rewardId) {
+    NSLog(@"Primary click: %@", rewardId);
+}
+              onDismiss:^{
+    NSLog(@"Popup dismissed");
+}];
+```
+
+### 4) Dismiss programmatically (optional)
+
+```objc
+[DelightObjC dismiss];
+```
+
+## Configuration Options
 
 `Delight.initialize(...)` supports:
 
 - `brandName`: production brand identifier provided by RewardsBag
+- `ignoreLocalRulesForTesting`: bypass suppression logic (QA/testing only)
+- `ignoreCooldownForLocalDevelopment`: bypass only 24h cooldown (local development)
+
+For `DelightObjC showRewardPopup`, only `ticketTypes` is required. `orderId`, `email`, `userToken`, `firstName`, and `lastName` are optional.
 
 ## Notes
 
-- Footer links, CTA handling, and local suppression are all handled by the SDK.
+- Footer links, CTA handling, and local suppression are handled by the SDK.
+- Ensure your host view remains mounted while presenting the popup (`DelightPopupPresenter` must stay in the view hierarchy).
