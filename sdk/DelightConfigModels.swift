@@ -1,7 +1,9 @@
 import Foundation
 
 struct DelightConfigDTO: Decodable {
+    let partnerId: String?
     let partnerLogo: String?
+    let apiUrl: String?
     let language: String?
     let popup: DelightPopupSectionDTO?
 }

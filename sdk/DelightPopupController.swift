@@ -1,5 +1,8 @@
 import Combine
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum DelightPopupState {
     case idle
@@ -26,12 +29,18 @@ final class DelightPopupController: ObservableObject {
     private var didRecordIgnoreForCurrentPresentation = false
     private var didCommitVisibleImpression = false
     private var didRegisterVisibleSession = false
+    private var initializationErrorMessage: String?
+    private var initializedBrandName: String?
 
     private init() {}
 
     func show(payload: DelightRequestPayload, callbacks: DelightCallbacks) {
         self.payload = payload
         self.callbacks = callbacks
+        if let initializationErrorMessage {
+            handleNonDisplayableError(initializationErrorMessage)
+            return
+        }
         self.state = .loading
         resetPresentationTracking()
         Task { await fetchConfigAndBuildPopup() }
@@ -64,6 +73,7 @@ final class DelightPopupController: ObservableObject {
         didRegisterVisibleSession = true
         let now = Date()
         commitVisibleImpressionIfNeeded(at: now)
+        triggerBackendImpressionTracking()
         callbacks.onImpression?(currentRewardId)
     }
 
@@ -76,11 +86,24 @@ final class DelightPopupController: ObservableObject {
         if let payload {
             DelightRewardSelectionService.recordClick(payload: payload, rewardId: rewardId)
         }
+        triggerBackendRewardClaimTracking(rewardId: rewardId)
+    }
+
+    func reportInitializationError(_ message: String) {
+        initializationErrorMessage = message
+    }
+
+    func clearInitializationError() {
+        initializationErrorMessage = nil
+    }
+
+    func setInitializedBrandName(_ value: String) {
+        initializedBrandName = value
     }
 
     private func fetchConfigAndBuildPopup() async {
         guard payload != nil else {
-            state = .failed("Missing payload")
+            handleNonDisplayableError("Missing payload")
             return
         }
 
@@ -93,23 +116,23 @@ final class DelightPopupController: ObservableObject {
                 self.config = bundledConfig
                 resolvedConfig = bundledConfig
             } catch {
-                state = .failed("SDK not initialized and bundled config is unavailable.")
+                handleNonDisplayableError("SDK not initialized and bundled config is unavailable.")
                 return
             }
         }
 
         guard let popup = resolvedConfig.popup, popup.enabled == true else {
-            state = .failed("Popup config missing or disabled")
+            handleNonDisplayableError("Popup config missing or disabled")
             return
         }
 
         guard DelightTemplateRegistry.supports(templateId: resolvedConfig.templateId) else {
-            state = .failed("Unsupported template: \(resolvedConfig.templateId)")
+            handleNonDisplayableError("Unsupported template: \(resolvedConfig.templateId)")
             return
         }
 
         guard let payload else {
-            state = .failed("Missing payload")
+            handleNonDisplayableError("Missing payload")
             return
         }
 
@@ -119,6 +142,7 @@ final class DelightPopupController: ObservableObject {
             ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
             ignoreCooldownForLocalDevelopment: ignoreCooldownForLocalDevelopment
         ) else {
+            callbacks.onError?("No eligible rewards available for current context.")
             isPresented = false
             state = .hidden
             resetPresentationTracking()
@@ -171,5 +195,109 @@ final class DelightPopupController: ObservableObject {
         didRecordIgnoreForCurrentPresentation = false
         didCommitVisibleImpression = false
         didRegisterVisibleSession = false
+    }
+
+    private func handleNonDisplayableError(_ message: String) {
+        callbacks.onError?(message)
+        isPresented = false
+        state = .hidden
+        resetPresentationTracking()
+    }
+
+    private func triggerBackendImpressionTracking() {
+        guard
+            let config,
+            let partnerId = config.partnerId, !partnerId.isEmpty,
+            let rewardId = currentRewardId, !rewardId.isEmpty
+        else { return }
+
+        let request = DelightTrackingService.RewardImpressionRequest(
+            hostPartnerId: partnerId,
+            rewardId: rewardId,
+            impressionCount: 1
+        )
+
+        Task.detached {
+            do {
+                try await DelightTrackingService.trackRewardImpression(
+                    request: request,
+                    apiBaseURLString: config.apiUrl,
+                    partnerIdHeader: partnerId
+                )
+            } catch {
+                let message = "Failed to track reward impression: \(error.localizedDescription)"
+                await MainActor.run {
+                    self.callbacks.onError?(message)
+                }
+            }
+        }
+    }
+
+    private func triggerBackendRewardClaimTracking(rewardId: String?) {
+        guard
+            let config,
+            let partnerId = config.partnerId, !partnerId.isEmpty,
+            let brandName = initializedBrandName, !brandName.isEmpty,
+            let rewardId, !rewardId.isEmpty,
+            let payload
+        else { return }
+
+        let orderId = {
+            if let existingOrderId = payload.orderId, !existingOrderId.isEmpty {
+                return existingOrderId
+            }
+            return makeFallbackOrderId(brandName: brandName)
+        }()
+
+        let request = DelightTrackingService.RewardClaimRequest(
+            partnerId: partnerId,
+            brandName: brandName,
+            customerEmail: payload.email ?? "",
+            orderReward: rewardId,
+            orderId: orderId
+        )
+
+        Task.detached {
+            await self.runWithBackgroundExecution {
+                do {
+                    try await DelightTrackingService.trackRewardClaim(
+                        request: request,
+                        apiBaseURLString: config.apiUrl,
+                        partnerIdHeader: partnerId
+                    )
+                } catch {
+                    let message = "Failed to track reward claim: \(error.localizedDescription)"
+                    await MainActor.run {
+                        self.callbacks.onError?(message)
+                    }
+                }
+            }
+        }
+    }
+
+    private func makeFallbackOrderId(brandName: String) -> String {
+        let brandPrefix = brandName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: " ", with: "-")
+        let timestampMs = Int(Date().timeIntervalSince1970 * 1000)
+        return "\(brandPrefix)-\(timestampMs)"
+    }
+
+    private func runWithBackgroundExecution(
+        operation: @escaping @Sendable () async -> Void
+    ) async {
+#if canImport(UIKit)
+        var taskId = UIBackgroundTaskIdentifier.invalid
+        taskId = UIApplication.shared.beginBackgroundTask(withName: "DelightRewardClaimTracking") {
+            UIApplication.shared.endBackgroundTask(taskId)
+            taskId = .invalid
+        }
+        await operation()
+        if taskId != .invalid {
+            UIApplication.shared.endBackgroundTask(taskId)
+        }
+#else
+        await operation()
+#endif
     }
 }

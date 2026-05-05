@@ -63,20 +63,8 @@ public struct DelightPopupView: View {
             .onAppear {
                 controller.markPopupBecameVisible()
             }
-        case .failed(let message):
-            VStack(spacing: 12) {
-                Text("Unable to load reward")
-                    .font(.headline)
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Button("Dismiss") {
-                    Self.dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            .padding(24)
-            .presentationDetents([.medium])
+        case .failed:
+            EmptyView()
         case .idle, .hidden:
             EmptyView()
         }

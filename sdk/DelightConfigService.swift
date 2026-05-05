@@ -1,9 +1,5 @@
 import Foundation
 
-// All JSON decodable models belong in DelightConfigModels.swift only.
-// Duplicating structs like DelightConfigDTO here causes Swift to report
-// "'DelightConfigDTO' is ambiguous for type lookup" and the sdk target fails to compile.
-
 enum DelightConfigService {
     static func fetchConfig(
         brandName: String,
@@ -15,20 +11,19 @@ enum DelightConfigService {
         let path = "configs/\(normalizedBrand).json"
         let endpoint = cdnBaseURL.appendingPathComponent(path)
         do {
-            let (data, response) = try await URLSession.shared.data(from: endpoint)
+            var request = URLRequest(url: endpoint)
+            request.timeoutInterval = 5
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.timeoutIntervalForRequest = 5
+            configuration.timeoutIntervalForResource = 5
+            let session = URLSession(configuration: configuration)
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
                 throw URLError(.badServerResponse)
             }
-#if DEBUG
-            print("Delight config source: CDN (\(endpoint.absoluteString)) status=\(httpResponse.statusCode)")
-#endif
             return try JSONDecoder().decode(DelightConfigDTO.self, from: data)
         } catch {
-#if DEBUG
-            print("Delight config CDN fetch failed for \(endpoint.absoluteString): \(error.localizedDescription)")
-            print("Delight config source: bundled fallback")
-#endif
-            return try loadBundledConfig()
+            throw error
         }
     }
 

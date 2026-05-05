@@ -70,9 +70,25 @@ enum DelightRewardSelectionService {
         )
 
         return DelightConfigDTO(
+            partnerId: config.partnerId,
             partnerLogo: config.partnerLogo,
+            apiUrl: config.apiUrl,
             language: config.language,
             popup: singleRewardPopup
+        )
+    }
+
+    /// Backward-compatible overload for call sites that don't pass cooldown bypass explicitly.
+    static func selectConfig(
+        from config: DelightConfigDTO,
+        payload: DelightRequestPayload,
+        ignoreLocalRulesForTesting: Bool
+    ) -> DelightConfigDTO? {
+        selectConfig(
+            from: config,
+            payload: payload,
+            ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
+            ignoreCooldownForLocalDevelopment: false
         )
     }
 
