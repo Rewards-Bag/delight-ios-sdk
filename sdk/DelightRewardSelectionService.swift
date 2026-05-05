@@ -70,7 +70,9 @@ enum DelightRewardSelectionService {
         )
 
         return DelightConfigDTO(
+            partnerId: config.partnerId,
             partnerLogo: config.partnerLogo,
+            apiUrl: config.apiUrl,
             language: config.language,
             popup: singleRewardPopup
         )

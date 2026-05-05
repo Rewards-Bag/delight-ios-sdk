@@ -27,12 +27,13 @@ public enum Delight {
                 )
             }
             DelightPopupController.shared.config = config
+            DelightPopupController.shared.setInitializedBrandName(brandName)
             DelightPopupController.shared.clearInitializationError()
         } catch {
             // Crash isolation: never throw initialization failures into host apps.
             let message = "Failed to initialize Delight SDK config: \(error.localizedDescription)"
-            logError(message)
             DelightPopupController.shared.config = safeEmptyConfig()
+            DelightPopupController.shared.setInitializedBrandName(brandName)
             DelightPopupController.shared.reportInitializationError(message)
         }
         DelightPopupController.shared.ignoreLocalRulesForTesting = ignoreLocalRulesForTesting
@@ -87,7 +88,9 @@ public enum Delight {
 
     private static func safeEmptyConfig() -> DelightConfigDTO {
         DelightConfigDTO(
+            partnerId: nil,
             partnerLogo: nil,
+            apiUrl: nil,
             language: "en",
             popup: DelightPopupSectionDTO(
                 enabled: false,
@@ -99,9 +102,4 @@ public enum Delight {
         )
     }
 
-    private static func logError(_ message: String) {
-#if DEBUG
-        print("Delight SDK Error:", message)
-#endif
-    }
 }
