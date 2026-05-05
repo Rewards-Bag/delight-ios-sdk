@@ -9,18 +9,25 @@ enum DelightConfigService {
         brandName: String,
         cdnBaseURL: URL
     ) async throws -> DelightConfigDTO {
+        let normalizedBrand = brandName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let path = "configs/\(normalizedBrand).json"
+        let endpoint = cdnBaseURL.appendingPathComponent(path)
         do {
-            let normalizedBrand = brandName
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
-            let path = "configs/\(normalizedBrand).json"
-            let endpoint = cdnBaseURL.appendingPathComponent(path)
             let (data, response) = try await URLSession.shared.data(from: endpoint)
             guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
                 throw URLError(.badServerResponse)
             }
+#if DEBUG
+            print("Delight config source: CDN (\(endpoint.absoluteString)) status=\(httpResponse.statusCode)")
+#endif
             return try JSONDecoder().decode(DelightConfigDTO.self, from: data)
         } catch {
+#if DEBUG
+            print("Delight config CDN fetch failed for \(endpoint.absoluteString): \(error.localizedDescription)")
+            print("Delight config source: bundled fallback")
+#endif
             return try loadBundledConfig()
         }
     }

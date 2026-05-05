@@ -3,7 +3,6 @@ import SwiftUI
 @MainActor
 public struct DelightPopupView: View {
     @ObservedObject private var controller = DelightPopupController.shared
-    @State private var hasTrackedImpression = false
 
     public init() {}
 
@@ -17,7 +16,7 @@ public struct DelightPopupView: View {
     }
 
     public static func show(orderId: String, email: String, firstName: String, lastName: String) {
-        Delight.showReward(
+        Delight.showRewardPopup(
             DelightRequestPayload(
                 orderId: orderId,
                 email: email,
@@ -36,12 +35,18 @@ public struct DelightPopupView: View {
     }
 
     public var body: some View {
+        popupRoot
+            .modifier(DelightSheetTransparentPresentationBackgroundModifier())
+    }
+
+    @ViewBuilder
+    private var popupRoot: some View {
         switch controller.state {
         case .loading:
             ProgressView("Loading reward...")
                 .padding(24)
                 .presentationDetents([.medium])
-        case .ready(let config, let theme, let rewardId):
+        case .ready(let config, let theme, _):
             DelightTemplateRegistry.view(
                 for: config,
                 theme: theme,
@@ -56,10 +61,7 @@ public struct DelightPopupView: View {
                 }
             )
             .onAppear {
-                if !hasTrackedImpression {
-                    hasTrackedImpression = true
-                    controller.callbacks.onImpression?(rewardId)
-                }
+                controller.markPopupBecameVisible()
             }
         case .failed(let message):
             VStack(spacing: 12) {
@@ -77,6 +79,16 @@ public struct DelightPopupView: View {
             .presentationDetents([.medium])
         case .idle, .hidden:
             EmptyView()
+        }
+    }
+}
+
+private struct DelightSheetTransparentPresentationBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.4, *) {
+            content.presentationBackground(.clear)
+        } else {
+            content
         }
     }
 }
