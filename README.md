@@ -4,7 +4,7 @@ DelightSDK is an iOS SDK for showing post-purchase reward popups with local supp
 
 ## Requirements
 
-- iOS 16+
+- iOS 14+
 - Swift 5.9+
 
 ## Add The Package (SPM)
@@ -162,3 +162,4 @@ For `DelightObjC showRewardPopup`, only `ticketTypes` is required. `orderId`, `e
 
 - Footer links, CTA handling, and local suppression are handled by the SDK.
 - Ensure your host view remains mounted while presenting the popup (`DelightPopupPresenter` must stay in the view hierarchy).
+- If the API is unreachable, returns an error, or configuration is invalid, the SDK fires the error callback and does not display the popup.

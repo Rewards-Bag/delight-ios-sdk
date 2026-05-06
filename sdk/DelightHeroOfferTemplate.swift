@@ -98,7 +98,7 @@ struct DelightHeroOfferTemplate: View {
                             } label: {
                                 Image(systemName: "minus")
                                     .font(.system(size: closeButtonIconSize, weight: .bold))
-                                    .foregroundStyle(closeButtonIconColor)
+                                    .foregroundColor(closeButtonIconColor)
                                     .frame(width: closeButtonSize, height: closeButtonSize)
                                     .background(closeButtonBG)
                                     .clipShape(RoundedRectangle(cornerRadius: closeButtonCornerRadius))
@@ -129,7 +129,7 @@ struct DelightHeroOfferTemplate: View {
                             Text(subtitle.uppercased())
                                 .font(.system(size: max(11, orderLineFontSize - 2), weight: .semibold))
                                 .tracking(0.6)
-                                .foregroundStyle(supportingTextColor)
+                                .foregroundColor(supportingTextColor)
                                 .lineSpacing(orderLineLineSpacing)
                                 .multilineTextAlignment(.center)
                                 .padding(orderLineMargin)
@@ -139,7 +139,7 @@ struct DelightHeroOfferTemplate: View {
                             Text(rewardLocale?.headline ?? "Thanks for your order")
                                 .font(.system(size: headlineFontSize, weight: headlineWeight))
                                 .multilineTextAlignment(.center)
-                                .foregroundStyle(headlineColor)
+                                .foregroundColor(headlineColor)
                                 .lineSpacing(headlineLineSpacing)
                                 .scaleEffect(theme.fontScale)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -152,7 +152,7 @@ struct DelightHeroOfferTemplate: View {
                             Text(description)
                                 .font(.system(size: descriptionFontSize, weight: descriptionWeight))
                                 .multilineTextAlignment(.center)
-                                .foregroundStyle(descriptionColor.opacity(0.85))
+                                .foregroundColor(descriptionColor.opacity(0.85))
                                 .lineSpacing(descriptionLineSpacing)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(.horizontal, descriptionRelativeHorizontalInset)
@@ -163,7 +163,7 @@ struct DelightHeroOfferTemplate: View {
                            !finePrint.isEmpty {
                             Text(finePrint)
                                 .font(.system(size: max(11, descriptionFontSize - 3), weight: .regular))
-                                .foregroundStyle(supportingTextColor)
+                                .foregroundColor(supportingTextColor)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, finePrintRelativeHorizontalInset)
                                 .padding(.top, -contentGap * 0.35)
@@ -182,7 +182,7 @@ struct DelightHeroOfferTemplate: View {
                                         .font(.system(size: ctaButtonFontSize, weight: ctaButtonWeight))
                                         .lineSpacing(ctaButtonLineSpacing)
                                         .multilineTextAlignment(.center)
-                                        .foregroundStyle(theme.onPrimary)
+                                        .foregroundColor(theme.onPrimary)
                                         .frame(maxWidth: .infinity)
                                         .padding(ctaButtonInnerPadding)
                                         .frame(minHeight: CGFloat(ctaButtonMinHeight))
@@ -222,34 +222,37 @@ struct DelightHeroOfferTemplate: View {
                     .background(Color.white)
                 }
                 .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: theme.radius))
                 .overlay(
-                    RoundedRectangle(cornerRadius: theme.radius)
-                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
-                )
-                .overlay(alignment: .topLeading) {
-                    if config.showRewardLogo,
-                       let rewardLogoUrl = reward?.logo,
-                       let rewardLogoURL = URL(string: rewardLogoUrl) {
-                        rewardBadge(url: rewardLogoURL, diameter: rewardBadgeDiameter, contentPadding: rewardLogoInnerPadding)
-                            .shadow(color: Color.black.opacity(0.14), radius: 8, y: 3)
-                            .padding(rewardLogoOverlayPadding)
-                            .offset(y: rewardLogoBadgeOffsetY)
-                    } else if config.showRewardLogo {
-                        placeholderSlot(label: "Reward", height: max(44, rewardBadgeDiameter - 14))
-                            .frame(width: rewardBadgeDiameter, height: rewardBadgeDiameter)
-                            .clipShape(Circle())
-                            .padding(rewardLogoOverlayPadding)
-                            .offset(y: rewardLogoBadgeOffsetY)
+                    ZStack(alignment: .topLeading) {
+                        RoundedRectangle(cornerRadius: theme.radius)
+                            .stroke(Color.black.opacity(0.08), lineWidth: 1)
+
+                        Group {
+                            if config.showRewardLogo,
+                               let rewardLogoUrl = reward?.logo,
+                               let rewardLogoURL = URL(string: rewardLogoUrl) {
+                                rewardBadge(url: rewardLogoURL, diameter: rewardBadgeDiameter, contentPadding: rewardLogoInnerPadding)
+                                    .shadow(color: Color.black.opacity(0.14), radius: 8, y: 3)
+                                    .padding(rewardLogoOverlayPadding)
+                                    .offset(y: rewardLogoBadgeOffsetY)
+                            } else if config.showRewardLogo {
+                                placeholderSlot(label: "Reward", height: max(44, rewardBadgeDiameter - 14))
+                                    .frame(width: rewardBadgeDiameter, height: rewardBadgeDiameter)
+                                    .clipShape(Circle())
+                                    .padding(rewardLogoOverlayPadding)
+                                    .offset(y: rewardLogoBadgeOffsetY)
+                            }
+                        }
                     }
-                }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: theme.radius))
             }
             .padding(.horizontal, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .ignoresSafeArea(edges: .bottom)
-        .presentationDetents([.large])
+        .modifier(DelightLargeSheetDetentModifier())
         .sheet(item: $safariFallbackRoute) { route in
             SafariFallbackView(url: route.url)
         }
@@ -275,13 +278,10 @@ struct DelightHeroOfferTemplate: View {
         Group {
             if let imageUrl = reward?.postPopupMobileImage ?? reward?.postPopupWebImage,
                let imageURL = URL(string: imageUrl) {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
+                if imageURL.pathExtension.lowercased() == "svg" {
+                    SVGRemoteImageView(url: imageURL)
+                } else {
+                    RemoteRasterImageView(url: imageURL, contentMode: .fill) {
                         imagePlaceholder
                     }
                 }
@@ -374,7 +374,7 @@ struct DelightHeroOfferTemplate: View {
             if let raw, !raw.isEmpty {
                 Text(raw)
                     .font(.system(size: max(11, fontSize), weight: fontWeight))
-                    .foregroundStyle(supportingTextColor)
+                    .foregroundColor(supportingTextColor)
                     .multilineTextAlignment(.center)
                     .lineSpacing(lineSpacing)
                     .padding(.horizontal, horizontalPadding)
@@ -397,16 +397,16 @@ struct DelightHeroOfferTemplate: View {
         HStack(spacing: 6) {
             footerLink(title: partnerTermsLabel, rawUrl: mirrorOptionalString(label: "partnerTermsUrl", in: reward))
             Text("|")
-                .foregroundStyle(supportingTextColor)
+                .foregroundColor(supportingTextColor)
                 .accessibilityHidden(true)
             footerLink(title: poweredByLabel, rawUrl: mirrorOptionalString(label: "poweredByUrl", in: reward))
             Text("|")
-                .foregroundStyle(supportingTextColor)
+                .foregroundColor(supportingTextColor)
                 .accessibilityHidden(true)
             footerLink(title: privacyLabel, rawUrl: mirrorOptionalString(label: "privacyPolicyUrl", in: reward))
         }
         .font(.system(size: 9, weight: .medium))
-        .foregroundStyle(supportingTextColor)
+        .foregroundColor(supportingTextColor)
         .lineSpacing(lineSpacing)
         .lineLimit(1)
         .minimumScaleFactor(0.65)
@@ -446,19 +446,12 @@ struct DelightHeroOfferTemplate: View {
             if url.pathExtension.lowercased() == "svg" {
                 SVGRemoteImageView(url: url)
             } else {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                    default:
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.08))
-                            .overlay(
-                                ProgressView()
-                            )
-                    }
+                RemoteRasterImageView(url: url, contentMode: .fit) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.08))
+                        .overlay(
+                            ProgressView()
+                        )
                 }
             }
         }
@@ -477,7 +470,7 @@ struct DelightHeroOfferTemplate: View {
             .overlay(
                 Image(systemName: "person.crop.rectangle")
                     .font(.system(size: 60, weight: .light))
-                    .foregroundStyle(Color.black.opacity(0.5))
+                    .foregroundColor(Color.black.opacity(0.5))
             )
     }
 
@@ -493,12 +486,12 @@ struct DelightHeroOfferTemplate: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
                         .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                        .foregroundStyle(Color.gray.opacity(0.4))
+                        .foregroundColor(Color.gray.opacity(0.4))
                 )
 
             Text(label)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.gray)
+                .foregroundColor(Color.gray)
         }
     }
 
@@ -521,7 +514,7 @@ struct DelightHeroOfferTemplate: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(arrowIconColor)
+                    .foregroundColor(arrowIconColor)
                     .frame(width: arrowSize, height: arrowSize)
                     .background(arrowBackgroundColor)
                     .clipShape(RoundedRectangle(cornerRadius: arrowCornerRadius))
@@ -541,7 +534,7 @@ struct DelightHeroOfferTemplate: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(arrowIconColor)
+                    .foregroundColor(arrowIconColor)
                     .frame(width: arrowSize, height: arrowSize)
                     .background(arrowBackgroundColor)
                     .clipShape(RoundedRectangle(cornerRadius: arrowCornerRadius))
@@ -665,6 +658,58 @@ private struct SafariFallbackView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+}
+
+private struct DelightLargeSheetDetentModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.large])
+        } else {
+            content
+        }
+    }
+}
+
+private struct RemoteRasterImageView<Placeholder: View>: View {
+    let url: URL
+    let contentMode: ContentMode
+    @ViewBuilder var placeholder: () -> Placeholder
+
+    @StateObject private var loader = RemoteRasterImageLoader()
+
+    var body: some View {
+        Group {
+            if let image = loader.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+            } else {
+                placeholder()
+            }
+        }
+        .onAppear {
+            loader.load(from: url)
+        }
+    }
+}
+
+private final class RemoteRasterImageLoader: ObservableObject {
+    @Published var image: UIImage?
+    private var currentURL: URL?
+
+    func load(from url: URL) {
+        if currentURL == url, image != nil {
+            return
+        }
+        currentURL = url
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            guard let self, self.currentURL == url else { return }
+            guard let data, let image = UIImage(data: data) else { return }
+            DispatchQueue.main.async {
+                self.image = image
+            }
+        }.resume()
+    }
 }
 
 private struct SVGRemoteImageView: UIViewRepresentable {
