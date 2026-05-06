@@ -13,9 +13,13 @@ public enum Delight {
         cdnBaseURL: URL = URL(string: "https://cdn.rewardsbag.com")!,
         useBundledConfig: Bool = false,
         ignoreLocalRulesForTesting: Bool = false,
-        ignoreCooldownForLocalDevelopment: Bool = false
+        ignoreCooldownForLocalDevelopment: Bool = false,
+        consentGranted: Bool = true
     ) async throws {
-        _ = localSDKUserToken()
+        DelightPopupController.shared.setConsent(granted: consentGranted)
+        if consentGranted {
+            _ = localSDKUserToken()
+        }
         do {
             let config: DelightConfigDTO
             if useBundledConfig {
@@ -41,6 +45,19 @@ public enum Delight {
         DelightPopupController.shared.ignoreCooldownForLocalDevelopment = ignoreCooldownForLocalDevelopment
     }
 
+    public static func setConsent(granted: Bool) {
+        DelightPopupController.shared.setConsent(granted: granted)
+        if granted {
+            return
+        }
+        clearLocalData()
+    }
+
+    public static func clearLocalData() {
+        UserDefaults.standard.removeObject(forKey: sdkUserTokenDefaultsKey)
+        DelightRewardSelectionService.clearLocalData()
+    }
+
     public static func showRewardPopup(
         _ payload: DelightRequestPayload,
         callbacks: DelightCallbacks = .init()
@@ -64,6 +81,16 @@ public enum Delight {
     }
 
     private static func payloadWithResolvedUserToken(_ payload: DelightRequestPayload) -> DelightRequestPayload {
+        guard DelightPopupController.shared.consentGranted else {
+            return DelightRequestPayload(
+                orderId: payload.orderId,
+                email: payload.email,
+                userToken: nil,
+                firstName: payload.firstName,
+                lastName: payload.lastName,
+                ticketTypes: payload.ticketTypes
+            )
+        }
         let existingToken = payload.userToken?.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedToken = (existingToken?.isEmpty == false) ? existingToken! : localSDKUserToken()
         return DelightRequestPayload(

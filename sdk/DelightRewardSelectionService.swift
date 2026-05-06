@@ -2,7 +2,6 @@ import Foundation
 
 enum DelightRewardSelectionService {
     private static let storagePrefix = "delight.stagecoach.reward-state.v5"
-    private static let sdkUserTokenDefaultsKey = "delight.sdk.local-user-token"
     private static let ticketTypesWithAgeGate: Set<String> = ["child", "young-person"]
     fileprivate static let secondsInDay: TimeInterval = 24 * 60 * 60
 
@@ -219,19 +218,7 @@ enum DelightRewardSelectionService {
 
     private static func userToken(from payload: DelightRequestPayload) -> String {
         let explicitToken = payload.userToken?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
-        if !explicitToken.isEmpty { return explicitToken }
-        return localSDKUserToken()
-    }
-
-    private static func localSDKUserToken() -> String {
-        let defaults = UserDefaults.standard
-        if let value = defaults.string(forKey: sdkUserTokenDefaultsKey),
-           !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return value
-        }
-        let created = UUID().uuidString.lowercased()
-        defaults.set(created, forKey: sdkUserTokenDefaultsKey)
-        return created
+        return explicitToken
     }
 
     private static func userDefaultsKey(for userKey: String) -> String {
@@ -253,6 +240,13 @@ enum DelightRewardSelectionService {
         let key = userDefaultsKey(for: userKey)
         guard let data = try? JSONEncoder().encode(state) else { return }
         UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func clearLocalData() {
+        let defaults = UserDefaults.standard
+        defaults.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix(storagePrefix) }
+            .forEach { defaults.removeObject(forKey: $0) }
     }
 }
 

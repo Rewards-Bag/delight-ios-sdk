@@ -48,7 +48,8 @@ Call once on app startup (for example in `.task`, app launch, or bootstrap flow)
 try await Delight.initialize(
     brandName: "rewardsbag-provided-brand-name",
     ignoreLocalRulesForTesting: false,
-    ignoreCooldownForLocalDevelopment: false
+    ignoreCooldownForLocalDevelopment: false,
+    consentGranted: true
 )
 ```
 
@@ -106,6 +107,10 @@ The SDK exposes `DelightObjC` as an Objective-C bridge for initialization and po
 ### 2) Initialize the SDK
 
 ```objc
+// Set consent first (required for popup/tracking behavior).
+// `initialize` does not take a consent argument in Objective-C.
+[DelightObjC setConsentGranted:YES];
+
 [DelightObjC initialize:@"rewardsbag-provided-brand-name"
 ignoreLocalRulesForTesting:NO
 ignoreCooldownForLocalDevelopment:NO
@@ -149,8 +154,19 @@ ignoreCooldownForLocalDevelopment:NO
 - `brandName`: production brand identifier provided by RewardsBag
 - `ignoreLocalRulesForTesting`: bypass suppression logic (QA/testing only)
 - `ignoreCooldownForLocalDevelopment`: bypass only 24h cooldown (local development)
+- `consentGranted`: set to `true` only when user consent is granted
 
 For `DelightObjC showRewardPopup`, only `ticketTypes` is required. `orderId`, `email`, `userToken`, `firstName`, and `lastName` are optional.
+
+## Consent Controls
+
+- Swift:
+  - `Delight.setConsent(granted:)` to gate popup display/tracking at runtime.
+  - `Delight.clearLocalData()` to clear locally stored SDK token + suppression history.
+- Objective-C:
+  - `[DelightObjC setConsentGranted:YES/NO]`
+  - `[DelightObjC clearLocalData]`
+- When consent is not granted, the SDK is a no-op for popup display and backend tracking.
 
 ## Privacy
 

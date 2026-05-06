@@ -25,6 +25,20 @@ public final class DelightObjC: NSObject {
         }
     }
 
+    @objc(setConsentGranted:)
+    public static func setConsentGranted(_ granted: Bool) {
+        Task { @MainActor in
+            Delight.setConsent(granted: granted)
+        }
+    }
+
+    @objc
+    public static func clearLocalData() {
+        Task { @MainActor in
+            Delight.clearLocalData()
+        }
+    }
+
     /// Objective-C bridge for showing a reward popup.
     @objc(showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onError:)
     public static func showRewardPopup(
