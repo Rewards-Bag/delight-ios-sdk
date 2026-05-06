@@ -45,7 +45,7 @@ public struct DelightPopupView: View {
         case .loading:
             ProgressView("Loading reward...")
                 .padding(24)
-                .presentationDetents([.medium])
+                .modifier(DelightLoadingSheetDetentModifier())
         case .ready(let config, let theme, _):
             DelightTemplateRegistry.view(
                 for: config,
@@ -67,6 +67,16 @@ public struct DelightPopupView: View {
             EmptyView()
         case .idle, .hidden:
             EmptyView()
+        }
+    }
+}
+
+private struct DelightLoadingSheetDetentModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.medium])
+        } else {
+            content
         }
     }
 }

@@ -47,7 +47,8 @@ struct ContentView: View {
             try? await Delight.initialize(
                 brandName: "rewardsbag-provided-brand-name",
                 ignoreLocalRulesForTesting: false,
-                ignoreCooldownForLocalDevelopment: false
+                ignoreCooldownForLocalDevelopment: false,
+                consentGranted: true
             )
         }
     }
@@ -80,6 +81,26 @@ ignoreCooldownForLocalDevelopment:NO
 ```
 
 `ticketTypes` is required for Objective-C `showRewardPopup`; `orderId`, `email`, `userToken`, `firstName`, and `lastName` are optional.
+
+## Consent Controls
+
+- Swift:
+  - ``Delight/setConsent(granted:)``
+  - ``Delight/clearLocalData()``
+- Objective-C:
+  - `+[DelightObjC setConsentGranted:]`
+  - `+[DelightObjC clearLocalData]`
+- When consent is not granted, popup display and backend tracking are disabled.
+
+## Privacy
+
+- `PrivacyInfo.xcprivacy` ships with the SDK. No host-app declarations are required for SDK behavior.
+- The SDK does not use any APIs requiring App Tracking Transparency.
+- The SDK does not access IDFA, advertising identifiers, or device fingerprinting.
+
+## Error Handling
+
+If the API is unreachable, returns an error, or configuration is invalid, the SDK fires the error callback and does not display the popup.
 
 ## Topics
 

@@ -97,7 +97,9 @@ final class DelightSDKTests: XCTestCase {
 
 private func makeConfig(rewards: [DelightPopupRewardDTO]) -> DelightConfigDTO {
     DelightConfigDTO(
+        partnerId: "test-partner",
         partnerLogo: nil,
+        apiUrl: "https://api.rewardsbag.com",
         language: "en",
         popup: DelightPopupSectionDTO(
             enabled: true,

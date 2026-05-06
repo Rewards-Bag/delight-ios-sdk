@@ -19,15 +19,18 @@ struct DelightCompactTemplate: View {
             if let subtitle = popupLocale?.orderLine {
                 Text(subtitle)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(Color(UIColor.secondaryLabel))
                     .multilineTextAlignment(.center)
             }
 
             Button(rewardLocale?.cta ?? popupLocale?.cta ?? "Continue") {
                 onPrimary(reward?.id)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(theme.primary)
+            .buttonStyle(.plain)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(theme.primary)
+            .clipShape(Capsule())
 
             Button(popupLocale?.secondaryCta ?? "Dismiss") {
                 onDismiss()
@@ -37,6 +40,16 @@ struct DelightCompactTemplate: View {
         .padding(16)
         .background(theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: theme.radius))
-        .presentationDetents([.height(260)])
+        .modifier(DelightCompactSheetDetentModifier())
+    }
+}
+
+private struct DelightCompactSheetDetentModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.height(260)])
+        } else {
+            content
+        }
     }
 }

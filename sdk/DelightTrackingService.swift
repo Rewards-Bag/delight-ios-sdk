@@ -27,8 +27,8 @@ enum DelightTrackingService {
             body: request,
             apiBaseURLString: apiBaseURLString,
             partnerIdHeader: partnerIdHeader,
-            timeoutInterval: 20,
-            retryCount: 1
+            timeoutInterval: 5,
+            retryCount: 0
         )
     }
 
