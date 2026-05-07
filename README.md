@@ -113,6 +113,7 @@ The SDK exposes `DelightObjC` as an Objective-C bridge for initialization and po
 [DelightObjC setConsentGranted:YES];
 
 [DelightObjC initialize:@"rewardsbag-provided-brand-name"
+                locale:@"en"
 ignoreLocalRulesForTesting:NO
 ignoreCooldownForLocalDevelopment:NO
               completion:^(NSError * _Nullable error) {
@@ -157,6 +158,11 @@ ignoreCooldownForLocalDevelopment:NO
 - `ignoreLocalRulesForTesting`: bypass suppression logic (QA/testing only)
 - `ignoreCooldownForLocalDevelopment`: bypass only 24h cooldown (local development)
 - `consentGranted`: set to `true` only when user consent is granted
+
+Objective-C initialization supports locale via:
+
+- `[DelightObjC initialize:locale:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:]`
+- The older initializer without `locale` is deprecated and defaults locale to `"en"`.
 
 For `DelightObjC showRewardPopup`, only `ticketTypes` is required. `orderId`, `email`, `userToken`, `firstName`, and `lastName` are optional.
 
