@@ -62,6 +62,10 @@ struct DelightHeroOfferTemplate: View {
         let ctaButtonMargin = edgeInsets(from: config.ctaButtonMargin)
         let ctaButtonInnerPadding = edgeInsets(from: config.ctaButtonPadding)
         let footerLinksMargin = edgeInsets(from: config.footerLinksMargin)
+        let hostLogoHeight = CGFloat(config.hostLogoHeight)
+        let hostLogoMaxWidth = CGFloat(config.hostLogoMaxWidth)
+        let hostLogoPaddingTop = CGFloat(config.hostLogoPaddingTop)
+        let hostLogoMargin = edgeInsets(from: config.hostLogoMargin)
         let rewardLogoBadgeOuterInsets = edgeInsets(from: DelightRewardLogoMetrics.outerInsets(for: config))
         let rewardLogoInnerPadding = edgeInsets(from: config.rewardLogoPadding)
 
@@ -123,6 +127,14 @@ struct DelightHeroOfferTemplate: View {
                                 arrowCornerRadius: sliderArrowCornerRadius
                             )
                             .padding(sliderMargin)
+                        }
+
+                        if config.showHostLogo,
+                           let hostLogoUrl = config.partnerLogo,
+                           let hostLogoURL = URL(string: hostLogoUrl) {
+                            logoImage(url: hostLogoURL, height: hostLogoHeight, maxWidth: hostLogoMaxWidth)
+                                .padding(.top, hostLogoPaddingTop)
+                                .padding(hostLogoMargin)
                         }
 
                         if config.showOrderLine, let subtitle = popupLocale?.orderLine {
