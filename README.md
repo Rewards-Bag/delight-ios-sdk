@@ -47,6 +47,7 @@ Call once on app startup (for example in `.task`, app launch, or bootstrap flow)
 ```swift
 try await Delight.initialize(
     brandName: "rewardsbag-provided-brand-name",
+    locale: "en",
     ignoreLocalRulesForTesting: false,
     ignoreCooldownForLocalDevelopment: false,
     consentGranted: true
@@ -152,6 +153,7 @@ ignoreCooldownForLocalDevelopment:NO
 `Delight.initialize(...)` supports:
 
 - `brandName`: production brand identifier provided by RewardsBag
+- `locale`: locale/language code for popup content (default: `"en"`)
 - `ignoreLocalRulesForTesting`: bypass suppression logic (QA/testing only)
 - `ignoreCooldownForLocalDevelopment`: bypass only 24h cooldown (local development)
 - `consentGranted`: set to `true` only when user consent is granted
