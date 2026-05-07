@@ -4,9 +4,10 @@ import Foundation
 public final class DelightObjC: NSObject {
     /// Objective-C bridge for async SDK initialization.
     /// Completion returns `nil` on success or an NSError on failure.
-    @objc(initialize:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:)
+    @objc(initialize:locale:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:)
     public static func initialize(
         _ brandName: String,
+        locale: String,
         ignoreLocalRulesForTesting: Bool,
         ignoreCooldownForLocalDevelopment: Bool,
         completion: ((NSError?) -> Void)?
@@ -15,6 +16,7 @@ public final class DelightObjC: NSObject {
             do {
                 try await Delight.initialize(
                     brandName: brandName,
+                    locale: locale,
                     ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
                     ignoreCooldownForLocalDevelopment: ignoreCooldownForLocalDevelopment
                 )
@@ -23,6 +25,23 @@ public final class DelightObjC: NSObject {
                 completion?(error as NSError)
             }
         }
+    }
+
+    @available(*, deprecated, message: "Use initialize:locale:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:")
+    @objc(initialize:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:)
+    public static func initialize(
+        _ brandName: String,
+        ignoreLocalRulesForTesting: Bool,
+        ignoreCooldownForLocalDevelopment: Bool,
+        completion: ((NSError?) -> Void)?
+    ) {
+        initialize(
+            brandName,
+            locale: "en",
+            ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
+            ignoreCooldownForLocalDevelopment: ignoreCooldownForLocalDevelopment,
+            completion: completion
+        )
     }
 
     @objc(setConsentGranted:)
