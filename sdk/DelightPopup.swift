@@ -10,6 +10,7 @@ public enum Delight {
     ///   - ignoreCooldownForLocalDevelopment: When `true`, skips **only** the 24h cooldown so you can trigger another popup on every run; monthly cap and per-reward suppression still apply. Use for local development, not production.
     public static func initialize(
         brandName: String,
+        locale: String = "en",
         cdnBaseURL: URL = URL(string: "https://cdn.rewardsbag.com")!,
         useBundledConfig: Bool = false,
         ignoreLocalRulesForTesting: Bool = false,
@@ -30,7 +31,10 @@ public enum Delight {
                     cdnBaseURL: cdnBaseURL
                 )
             }
-            DelightPopupController.shared.config = config
+            DelightPopupController.shared.config = configWithResolvedLocale(
+                config,
+                explicitLocale: locale
+            )
             DelightPopupController.shared.setInitializedBrandName(brandName)
             DelightPopupController.shared.clearInitializationError()
         } catch {
@@ -128,6 +132,32 @@ public enum Delight {
                 rewards: []
             )
         )
+    }
+
+    private static func configWithResolvedLocale(
+        _ config: DelightConfigDTO,
+        explicitLocale: String
+    ) -> DelightConfigDTO {
+        let resolvedLocale = normalizedLocaleCode(explicitLocale)
+            ?? "en"
+        return DelightConfigDTO(
+            partnerId: config.partnerId,
+            partnerLogo: config.partnerLogo,
+            apiUrl: config.apiUrl,
+            language: resolvedLocale,
+            popup: config.popup
+        )
+    }
+
+    private static func normalizedLocaleCode(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let lowered = trimmed.lowercased().replacingOccurrences(of: "_", with: "-")
+        if let primary = lowered.split(separator: "-").first, !primary.isEmpty {
+            return String(primary)
+        }
+        return lowered
     }
 
     private static func logError(_ message: String) {

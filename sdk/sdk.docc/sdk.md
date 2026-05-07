@@ -8,7 +8,7 @@ Use DelightSDK to initialize campaign configuration and present reward popups fr
 
 Typical integration flow:
 
-1. Initialize once at app startup with ``Delight/initialize(brandName:cdnBaseURL:useBundledConfig:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:)``.
+1. Initialize once at app startup with ``Delight/initialize(brandName:locale:cdnBaseURL:useBundledConfig:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:consentGranted:)``.
 2. Mount ``DelightPopupPresenter`` in your root SwiftUI view hierarchy.
 3. Trigger a popup with ``Delight/showRewardPopup(_:callbacks:)``.
 4. Optionally dismiss with ``Delight/dismiss()``.
@@ -46,6 +46,7 @@ struct ContentView: View {
         .task {
             try? await Delight.initialize(
                 brandName: "rewardsbag-provided-brand-name",
+                locale: "en",
                 ignoreLocalRulesForTesting: false,
                 ignoreCooldownForLocalDevelopment: false,
                 consentGranted: true
@@ -118,6 +119,6 @@ If the API is unreachable, returns an error, or configuration is invalid, the SD
 
 ### API Mapping (Swift ↔ Objective-C)
 
-- Initialize: ``Delight/initialize(brandName:cdnBaseURL:useBundledConfig:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:)`` ↔ `+[DelightObjC initialize:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:]`
+- Initialize: ``Delight/initialize(brandName:locale:cdnBaseURL:useBundledConfig:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:consentGranted:)`` ↔ `+[DelightObjC initialize:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:]`
 - Show popup: ``Delight/showRewardPopup(_:callbacks:)`` ↔ `+[DelightObjC showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:]`
 - Dismiss: ``Delight/dismiss()`` ↔ `+[DelightObjC dismiss]`
