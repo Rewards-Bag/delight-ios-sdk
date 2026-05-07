@@ -57,6 +57,7 @@ struct DelightPopupRewardLocaleDTO: Decodable {
 struct DelightPopupThemeConfigDTO: Decodable {
     let overlay: DelightOverlayThemeDTO?
     let widgetContainer: DelightWidgetContainerThemeDTO?
+    let widgetImage: DelightWidgetImageThemeDTO?
     let widgetContentContainer: DelightWidgetContentContainerThemeDTO?
     let hostLogo: DelightAssetThemeDTO?
     let rewardLogo: DelightAssetThemeDTO?
@@ -78,6 +79,14 @@ struct DelightOverlayThemeDTO: Decodable {
 struct DelightWidgetContainerThemeDTO: Decodable {
     let backgroundColor: String?
     let borderRadius: String?
+}
+
+struct DelightWidgetImageThemeDTO: Decodable {
+    let objectFit: String?
+    let width: String?
+    let height: String?
+    let maxHeight: String?
+    let aspectRatio: String?
 }
 
 struct DelightWidgetContentContainerThemeDTO: Decodable {
@@ -228,6 +237,17 @@ extension DelightConfigDTO {
 
     var contentPaddingHorizontal: Double {
         parsePixelValue(popup?.theme?.widgetContentContainer?.padding?.left) ?? 0
+    }
+
+    var widgetImageHeight: Double {
+        parsePixelValue(popup?.theme?.widgetImage?.height)
+            ?? parsePixelValue(popup?.theme?.widgetImage?.maxHeight)
+            ?? 208
+    }
+
+    var widgetImageObjectFit: String {
+        popup?.theme?.widgetImage?.objectFit?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            ?? "cover"
     }
 
     var hostLogoHeight: Double {
