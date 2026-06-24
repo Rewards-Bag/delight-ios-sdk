@@ -6,6 +6,17 @@ struct DelightConfigDTO: Decodable {
     let apiUrl: String?
     let language: String?
     let popup: DelightPopupSectionDTO?
+    let suppressionRules: DelightSuppressionRulesDTO?
+}
+
+struct DelightSuppressionRulesDTO: Decodable {
+    let maxImpressionsPerUserPerMonth: Int?
+    let maxRewardsPerUserPerDay: Int?
+    let dailyCooldownHours: Int?
+    let maxImpressionsPerRewardWithoutEngagement: Int?
+    let restPeriodAfterNoEngagementDays: Int?
+    let suppressionPeriodAfterClickDays: Int?
+    let retentionDays: Int?
 }
 
 struct DelightPopupSectionDTO: Decodable {
@@ -263,7 +274,15 @@ extension DelightConfigDTO {
     }
 
     var hostLogoMargin: DelightComponentInsets {
-        parseInsets(popup?.theme?.hostLogo?.margin)
+        let parsed = parseInsets(popup?.theme?.hostLogo?.margin)
+        let hasExplicitTop = popup?.theme?.hostLogo?.margin?.top != nil
+        let hasExplicitBottom = popup?.theme?.hostLogo?.margin?.bottom != nil
+        return DelightComponentInsets(
+            top: hasExplicitTop ? parsed.top : 8,
+            right: parsed.right,
+            bottom: hasExplicitBottom ? parsed.bottom : 8,
+            left: parsed.left
+        )
     }
 
     var rewardLogoHeight: Double {

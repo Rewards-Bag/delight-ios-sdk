@@ -6,6 +6,8 @@ import WebKit
 struct DelightHeroOfferTemplate: View {
     let config: DelightConfigDTO
     let theme: DelightPopupTheme
+    var closeButtonAction: DelightPopupCloseButtonAction = .minimize
+    let onMinimize: () -> Void
     let onPrimary: (String?) -> Void
     let onDismiss: () -> Void
     @Environment(\.openURL) private var openURL
@@ -103,15 +105,25 @@ struct DelightHeroOfferTemplate: View {
 
                         if config.showCloseButton {
                             Button {
-                                onDismiss()
+                                switch closeButtonAction {
+                                case .minimize:
+                                    onMinimize()
+                                case .dismiss:
+                                    onDismiss()
+                                }
                             } label: {
-                                Image(systemName: "minus")
+                                Image(systemName: closeButtonAction == .minimize ? "minus" : "xmark")
                                     .font(.system(size: closeButtonIconSize, weight: .bold))
                                     .foregroundColor(closeButtonIconColor)
                                     .frame(width: closeButtonSize, height: closeButtonSize)
                                     .background(closeButtonBG)
                                     .clipShape(RoundedRectangle(cornerRadius: closeButtonCornerRadius))
                             }
+                            .accessibilityLabel(
+                                closeButtonAction == .minimize
+                                ? "Minimize reward offer"
+                                : "Close reward offer"
+                            )
                             .padding(.top, closeButtonTop)
                             .padding(.trailing, closeButtonTrailing)
                         }
@@ -250,6 +262,7 @@ struct DelightHeroOfferTemplate: View {
                                let rewardLogoURL = URL(string: rewardLogoUrl) {
                                 rewardBadge(url: rewardLogoURL, diameter: rewardBadgeDiameter, contentPadding: rewardLogoInnerPadding)
                                     .shadow(color: Color.black.opacity(0.14), radius: 8, y: 3)
+                                    .shadow(color: Color.black.opacity(0.14), radius: 8, y: 3)
                                     .padding(rewardLogoOverlayPadding)
                                     .offset(y: rewardLogoBadgeOffsetY)
                             } else if config.showRewardLogo {
@@ -269,7 +282,6 @@ struct DelightHeroOfferTemplate: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .ignoresSafeArea(edges: .bottom)
-        .modifier(DelightLargeSheetDetentModifier())
         .sheet(item: $safariFallbackRoute) { route in
             SafariFallbackView(url: route.url)
         }
@@ -701,16 +713,6 @@ private struct SafariFallbackView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
-}
-
-private struct DelightLargeSheetDetentModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 16.0, *) {
-            content.presentationDetents([.large])
-        } else {
-            content
-        }
-    }
 }
 
 private struct RemoteRasterImageView<Placeholder: View>: View {

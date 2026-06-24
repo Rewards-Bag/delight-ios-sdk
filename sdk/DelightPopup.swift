@@ -6,20 +6,23 @@ public enum Delight {
 
     /// - Parameters:
     ///   - useBundledConfig: When `true`, loads `config.json` from the app bundle (e.g. `sdk/config.json` copied into the target) and skips the CDN. Use for local testing.
-    ///   - ignoreLocalRulesForTesting: When `true`, skips the monthly impression cap and 24h cooldown (QA only).
-    ///   - ignoreCooldownForLocalDevelopment: When `true`, skips **only** the 24h cooldown so you can trigger another popup on every run; monthly cap and per-reward suppression still apply. Use for local development, not production.
+    ///   - ignoreDailyCooldownHours: When `true`, treats `dailyCooldownHours` as 0 so the second daily reward slot is not blocked by the cooldown.
     public static func initialize(
         brandName: String,
         locale: String = "en",
         cdnBaseURL: URL = URL(string: "https://cdn.rewardsbag.com")!,
         useBundledConfig: Bool = false,
-        ignoreLocalRulesForTesting: Bool = false,
-        ignoreCooldownForLocalDevelopment: Bool = false,
+        ignoreDailyCooldownHours: Bool = false,
         consentGranted: Bool = true
     ) async throws {
-        DelightPopupController.shared.setConsent(granted: consentGranted)
+        DelightRewardSelectionService.ignoreDailyCooldownHours = ignoreDailyCooldownHours
+        let controller = DelightPopupController.shared
+        controller.setConsent(granted: consentGranted)
         if consentGranted {
             _ = localSDKUserToken()
+        }
+        if controller.isConfigLoaded(for: brandName) {
+            return
         }
         do {
             let config: DelightConfigDTO
@@ -35,18 +38,16 @@ public enum Delight {
                 config,
                 explicitLocale: locale
             )
-            DelightPopupController.shared.setInitializedBrandName(brandName)
-            DelightPopupController.shared.clearInitializationError()
+            controller.setInitializedBrandName(brandName)
+            controller.clearInitializationError()
         } catch {
             // Crash isolation: never throw initialization failures into host apps.
             let message = "Failed to initialize Delight SDK config: \(error.localizedDescription)"
             logError(message)
-            DelightPopupController.shared.config = safeEmptyConfig()
-            DelightPopupController.shared.setInitializedBrandName(brandName)
-            DelightPopupController.shared.reportInitializationError(message)
+            controller.config = safeEmptyConfig()
+            controller.setInitializedBrandName(brandName)
+            controller.reportInitializationError(message)
         }
-        DelightPopupController.shared.ignoreLocalRulesForTesting = ignoreLocalRulesForTesting
-        DelightPopupController.shared.ignoreCooldownForLocalDevelopment = ignoreCooldownForLocalDevelopment
     }
 
     public static func setConsent(granted: Bool) {
@@ -60,6 +61,13 @@ public enum Delight {
     public static func clearLocalData() {
         UserDefaults.standard.removeObject(forKey: sdkUserTokenDefaultsKey)
         DelightRewardSelectionService.clearLocalData()
+    }
+
+    /// Clears today's daily reward slots for all users, mimicking a GMT midnight rollover.
+    /// Use for QA to re-test first/second daily rewards without waiting until midnight.
+    /// Fatigue, click suppression, and monthly impression history are preserved.
+    public static func resetDailySuppressionState() {
+        DelightRewardSelectionService.resetDailySuppressionState()
     }
 
     public static func showRewardPopup(
@@ -130,7 +138,8 @@ public enum Delight {
                 locales: nil,
                 theme: nil,
                 rewards: []
-            )
+            ),
+            suppressionRules: nil
         )
     }
 
@@ -145,7 +154,8 @@ public enum Delight {
             partnerLogo: config.partnerLogo,
             apiUrl: config.apiUrl,
             language: resolvedLocale,
-            popup: config.popup
+            popup: config.popup,
+            suppressionRules: config.suppressionRules
         )
     }
 

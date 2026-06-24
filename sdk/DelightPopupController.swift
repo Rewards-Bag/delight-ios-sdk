@@ -4,6 +4,11 @@ import Foundation
 import UIKit
 #endif
 
+enum DelightPopupCloseButtonAction {
+    case minimize
+    case dismiss
+}
+
 enum DelightPopupState {
     case idle
     case loading
@@ -17,13 +22,13 @@ final class DelightPopupController: ObservableObject {
     static let shared = DelightPopupController()
 
     @Published var isPresented = false
+    @Published var isMinimized = false
+    @Published var closeButtonShowsDismiss = false
     @Published var state: DelightPopupState = .idle
     @Published var payload: DelightRequestPayload?
     @Published var callbacks: DelightCallbacks = .init()
     @Published var config: DelightConfigDTO?
-    @Published var ignoreLocalRulesForTesting = false
     @Published var consentGranted = true
-    var ignoreCooldownForLocalDevelopment = false
 
     private var currentRewardId: String?
     private var didClickCurrentReward = false
@@ -38,6 +43,10 @@ final class DelightPopupController: ObservableObject {
     func show(payload: DelightRequestPayload, callbacks: DelightCallbacks) {
         self.payload = payload
         self.callbacks = callbacks
+        hideMinimizedBadgeOverlay()
+        hidePopupOverlay()
+        isMinimized = false
+        closeButtonShowsDismiss = false
         guard consentGranted else {
             handleNonDisplayableError("Consent not granted. Popup display is disabled.")
             return
@@ -61,16 +70,33 @@ final class DelightPopupController: ObservableObject {
 
     func dismiss() {
         recordIgnoreIfNoClick()
+        hidePopupOverlay()
+        hideMinimizedBadgeOverlay()
+        isMinimized = false
+        closeButtonShowsDismiss = false
         isPresented = false
         state = .hidden
+        callbacks.onDismiss?()
         resetPresentationTracking()
     }
 
-    func handleSheetDidDismiss() {
-        recordIgnoreIfNoClick()
-        callbacks.onDismiss?()
-        resetPresentationTracking()
-        state = .hidden
+    /// Collapses the popup to a floating present icon without recording an ignore.
+    func minimize() {
+        guard case .ready = state else { return }
+        hidePopupOverlay()
+        isMinimized = true
+        isPresented = false
+        showMinimizedBadgeOverlay()
+    }
+
+    /// Reopens the reward popup from the minimized present icon (close button becomes X).
+    func expandFromMinimized() {
+        guard case .ready = state else { return }
+        hideMinimizedBadgeOverlay()
+        closeButtonShowsDismiss = true
+        isMinimized = false
+        isPresented = true
+        showPopupOverlay()
     }
 
     func markPopupBecameVisible() {
@@ -104,6 +130,10 @@ final class DelightPopupController: ObservableObject {
 
     func setInitializedBrandName(_ value: String) {
         initializedBrandName = value
+    }
+
+    func isConfigLoaded(for brandName: String) -> Bool {
+        config != nil && initializedBrandName == brandName
     }
 
     func setConsent(granted: Bool) {
@@ -151,11 +181,10 @@ final class DelightPopupController: ObservableObject {
 
         guard let selectedConfig = DelightRewardSelectionService.selectConfig(
             from: resolvedConfig,
-            payload: payload,
-            ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
-            ignoreCooldownForLocalDevelopment: ignoreCooldownForLocalDevelopment
+            payload: payload
         ) else {
             callbacks.onError?("No eligible rewards available for current context.")
+            hidePopupOverlay()
             isPresented = false
             state = .hidden
             resetPresentationTracking()
@@ -167,7 +196,10 @@ final class DelightPopupController: ObservableObject {
         state = .ready(selectedConfig, theme, selectedRewardId)
         currentRewardId = selectedRewardId
         didClickCurrentReward = false
+        closeButtonShowsDismiss = false
+        isMinimized = false
         isPresented = true
+        showPopupOverlay()
     }
 
     private func commitVisibleImpressionIfNeeded(at date: Date) {
@@ -181,7 +213,8 @@ final class DelightPopupController: ObservableObject {
         DelightRewardSelectionService.recordVisibleImpression(
             payload: payload,
             rewardId: rewardId,
-            at: date
+            at: date,
+            suppressionRules: config?.suppressionRules
         )
     }
 
@@ -213,9 +246,46 @@ final class DelightPopupController: ObservableObject {
     private func handleNonDisplayableError(_ message: String) {
         logError(message)
         callbacks.onError?(message)
+        hidePopupOverlay()
+        hideMinimizedBadgeOverlay()
+        isMinimized = false
+        closeButtonShowsDismiss = false
         isPresented = false
         state = .hidden
         resetPresentationTracking()
+    }
+
+    private func showPopupOverlay() {
+#if canImport(UIKit)
+        DelightPopupOverlay.show()
+#endif
+    }
+
+    private func hidePopupOverlay() {
+#if canImport(UIKit)
+        DelightPopupOverlay.hide()
+#endif
+    }
+
+    private func minimizedBadgeTheme() -> DelightPopupTheme {
+        if case .ready(_, let theme, _) = state {
+            return theme
+        }
+        return DelightPopupTheme.fromBrandTheme(config?.popup?.theme)
+    }
+
+    private func showMinimizedBadgeOverlay() {
+#if canImport(UIKit)
+        DelightMinimizedBadgeOverlay.show(theme: minimizedBadgeTheme()) { [weak self] in
+            self?.expandFromMinimized()
+        }
+#endif
+    }
+
+    private func hideMinimizedBadgeOverlay() {
+#if canImport(UIKit)
+        DelightMinimizedBadgeOverlay.hide()
+#endif
     }
 
     private func triggerBackendImpressionTracking() {

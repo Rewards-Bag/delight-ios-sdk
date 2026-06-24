@@ -14,6 +14,8 @@ enum DelightTemplateRegistry {
     static func view(
         for config: DelightConfigDTO,
         theme: DelightPopupTheme,
+        closeButtonAction: DelightPopupCloseButtonAction = .minimize,
+        onMinimize: @escaping () -> Void = {},
         onPrimary: @escaping (String?) -> Void,
         onDismiss: @escaping () -> Void
     ) -> some View {
@@ -29,6 +31,8 @@ enum DelightTemplateRegistry {
             DelightHeroOfferTemplate(
                 config: config,
                 theme: theme,
+                closeButtonAction: closeButtonAction,
+                onMinimize: onMinimize,
                 onPrimary: onPrimary,
                 onDismiss: onDismiss
             )
