@@ -48,8 +48,6 @@ Call once on app startup (for example in `.task`, app launch, or bootstrap flow)
 try await Delight.initialize(
     brandName: "rewardsbag-provided-brand-name",
     locale: "en",
-    ignoreLocalRulesForTesting: false,
-    ignoreCooldownForLocalDevelopment: false,
     consentGranted: true
 )
 ```
@@ -114,8 +112,6 @@ The SDK exposes `DelightObjC` as an Objective-C bridge for initialization and po
 
 [DelightObjC initialize:@"rewardsbag-provided-brand-name"
                 locale:@"en"
-ignoreLocalRulesForTesting:NO
-ignoreCooldownForLocalDevelopment:NO
               completion:^(NSError * _Nullable error) {
     if (error) {
         NSLog(@"Delight init failed: %@", error.localizedDescription);
@@ -155,24 +151,52 @@ ignoreCooldownForLocalDevelopment:NO
 
 - `brandName`: production brand identifier provided by RewardsBag
 - `locale`: locale/language code for popup content (default: `"en"`)
-- `ignoreLocalRulesForTesting`: bypass suppression logic (QA/testing only)
-- `ignoreCooldownForLocalDevelopment`: bypass only 24h cooldown (local development)
 - `consentGranted`: set to `true` only when user consent is granted
+- `ignoreDailyCooldownHours`: set to `true` for QA to bypass the 5-hour daily slot cooldown (`dailyCooldownHours` treated as 0)
 
-Objective-C initialization supports locale via:
+Objective-C initialization:
 
-- `[DelightObjC initialize:locale:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:]`
-- The older initializer without `locale` is deprecated and defaults locale to `"en"`.
+- `[DelightObjC initialize:locale:ignoreDailyCooldownHours:completion:]`
+- `[DelightObjC initialize:locale:completion:]` (cooldown enforced)
 
 For `DelightObjC showRewardPopup`, only `ticketTypes` is required. `orderId`, `email`, `userToken`, `firstName`, and `lastName` are optional.
+
+## QA / Local Testing
+
+- `Delight.resetDailySuppressionState()` clears today's daily reward slots (simulates GMT midnight). Fatigue, click suppression, and monthly history are preserved. Use this to re-test first/second daily rewards in one session.
+- `Delight.initialize(..., ignoreDailyCooldownHours: true)` bypasses the 5-hour cooldown between daily slot 1 and slot 2 for QA.
+- `Delight.clearLocalData()` wipes all local suppression history and the SDK user token.
+- Objective-C: `[DelightObjC resetDailySuppressionState]` and `[DelightObjC clearLocalData]`.
+
+## Local Suppression Rules
+
+All suppression and counting is on-device only (UserDefaults). Config values come from the dashboard CDN `suppressionRules` block; logic is fixed in the SDK.
+
+| Rule | CDN default (`stagecoachbus-com.json`) |
+|------|----------------------------------------|
+| Rewards per GMT day | 2 (must be different reward IDs) |
+| `dailyCooldownHours` | 5 |
+| `maxImpressionsPerRewardWithoutEngagement` | 3 |
+| `restPeriodAfterNoEngagementDays` | 21 |
+| Monthly impression cap (all rewards) | 15 per GMT month |
+| `suppressionPeriodAfterClickDays` | 45 |
+| `retentionDays` (per reward, last activity) | 90 |
+
+**Selection:** On each purchase, the SDK builds one ordered pool from every selected ticket type (in basket order), then shows the first eligible reward from that pool. One reward per purchase.
+
+**Purchase blocking:** No reward if daily cap reached, monthly cap reached, or slot 2 is requested within the 5-hour cooldown (cooldown purchases do not consume a slot).
+
+**Daily reset:** GMT midnight. **Monthly reset:** GMT calendar month.
 
 ## Consent Controls
 
 - Swift:
   - `Delight.setConsent(granted:)` to gate popup display/tracking at runtime.
-  - `Delight.clearLocalData()` to clear locally stored SDK token + suppression history.
+  - `Delight.resetDailySuppressionState()` to simulate a GMT midnight daily reset.
+  - `Delight.clearLocalData()` to clear locally stored SDK token + all suppression history.
 - Objective-C:
   - `[DelightObjC setConsentGranted:YES/NO]`
+  - `[DelightObjC resetDailySuppressionState]`
   - `[DelightObjC clearLocalData]`
 - When consent is not granted, the SDK is a no-op for popup display and backend tracking.
 

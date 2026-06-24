@@ -4,12 +4,11 @@ import Foundation
 public final class DelightObjC: NSObject {
     /// Objective-C bridge for async SDK initialization.
     /// Completion returns `nil` on success or an NSError on failure.
-    @objc(initialize:locale:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:)
+    @objc(initialize:locale:ignoreDailyCooldownHours:completion:)
     public static func initialize(
         _ brandName: String,
         locale: String,
-        ignoreLocalRulesForTesting: Bool,
-        ignoreCooldownForLocalDevelopment: Bool,
+        ignoreDailyCooldownHours: Bool,
         completion: ((NSError?) -> Void)?
     ) {
         Task { @MainActor in
@@ -17,8 +16,7 @@ public final class DelightObjC: NSObject {
                 try await Delight.initialize(
                     brandName: brandName,
                     locale: locale,
-                    ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
-                    ignoreCooldownForLocalDevelopment: ignoreCooldownForLocalDevelopment
+                    ignoreDailyCooldownHours: ignoreDailyCooldownHours
                 )
                 completion?(nil)
             } catch {
@@ -27,7 +25,46 @@ public final class DelightObjC: NSObject {
         }
     }
 
-    @available(*, deprecated, message: "Use initialize:locale:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:")
+    @objc(initialize:locale:completion:)
+    public static func initialize(
+        _ brandName: String,
+        locale: String,
+        completion: ((NSError?) -> Void)?
+    ) {
+        initialize(brandName, locale: locale, ignoreDailyCooldownHours: false, completion: completion)
+    }
+
+    @available(*, deprecated, message: "Use initialize:locale:completion:")
+    @objc(initialize:locale:ignoreDailyRewardCap:ignoreMonthlyImpressionCap:repeatFirstEligibleRewardForTesting:completion:)
+    public static func initialize(
+        _ brandName: String,
+        locale: String,
+        ignoreDailyRewardCap: Bool,
+        ignoreMonthlyImpressionCap: Bool,
+        repeatFirstEligibleRewardForTesting: Bool,
+        completion: ((NSError?) -> Void)?
+    ) {
+        initialize(brandName, locale: locale, completion: completion)
+    }
+
+    @available(*, deprecated, message: "Use initialize:locale:completion:")
+    @objc(initialize:locale:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:)
+    public static func initialize(
+        _ brandName: String,
+        locale: String,
+        ignoreLocalRulesForTesting: Bool,
+        ignoreCooldownForLocalDevelopment: Bool,
+        completion: ((NSError?) -> Void)?
+    ) {
+        initialize(
+            brandName,
+            locale: locale,
+            ignoreDailyCooldownHours: ignoreCooldownForLocalDevelopment,
+            completion: completion
+        )
+    }
+
+    @available(*, deprecated, message: "Use initialize:locale:ignoreDailyCooldownHours:completion:")
     @objc(initialize:ignoreLocalRulesForTesting:ignoreCooldownForLocalDevelopment:completion:)
     public static func initialize(
         _ brandName: String,
@@ -38,8 +75,7 @@ public final class DelightObjC: NSObject {
         initialize(
             brandName,
             locale: "en",
-            ignoreLocalRulesForTesting: ignoreLocalRulesForTesting,
-            ignoreCooldownForLocalDevelopment: ignoreCooldownForLocalDevelopment,
+            ignoreDailyCooldownHours: ignoreCooldownForLocalDevelopment,
             completion: completion
         )
     }
@@ -55,6 +91,13 @@ public final class DelightObjC: NSObject {
     public static func clearLocalData() {
         Task { @MainActor in
             Delight.clearLocalData()
+        }
+    }
+
+    @objc
+    public static func resetDailySuppressionState() {
+        Task { @MainActor in
+            Delight.resetDailySuppressionState()
         }
     }
 
@@ -136,4 +179,3 @@ public final class DelightObjC: NSObject {
         }
     }
 }
-

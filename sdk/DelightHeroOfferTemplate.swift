@@ -6,6 +6,8 @@ import WebKit
 struct DelightHeroOfferTemplate: View {
     let config: DelightConfigDTO
     let theme: DelightPopupTheme
+    var closeButtonAction: DelightPopupCloseButtonAction = .minimize
+    let onMinimize: () -> Void
     let onPrimary: (String?) -> Void
     let onDismiss: () -> Void
     @Environment(\.openURL) private var openURL
@@ -68,8 +70,9 @@ struct DelightHeroOfferTemplate: View {
         let hostLogoMargin = edgeInsets(from: config.hostLogoMargin)
         let rewardLogoBadgeOuterInsets = edgeInsets(from: DelightRewardLogoMetrics.outerInsets(for: config))
         let rewardLogoInnerPadding = edgeInsets(from: config.rewardLogoPadding)
+        let widgetImageObjectFit = config.widgetImageObjectFit
 
-        let heroBannerHeight: CGFloat = 208
+        let heroBannerHeight: CGFloat = CGFloat(config.widgetImageHeight)
         let rewardBadgeDiameter: CGFloat = DelightRewardLogoMetrics.badgeDiameter(for: config)
         /// Same leading/trailing inset for the widget body column (aligns badge with text edge).
         let widgetBodyLeadingInset: CGFloat = 8
@@ -94,19 +97,33 @@ struct DelightHeroOfferTemplate: View {
             ZStack(alignment: .topLeading) {
                 VStack(spacing: 0) {
                     ZStack(alignment: .topTrailing) {
-                        heroBanner(reward: reward, height: heroBannerHeight)
+                        heroBanner(
+                            reward: reward,
+                            height: heroBannerHeight,
+                            objectFit: widgetImageObjectFit
+                        )
 
                         if config.showCloseButton {
                             Button {
-                                onDismiss()
+                                switch closeButtonAction {
+                                case .minimize:
+                                    onMinimize()
+                                case .dismiss:
+                                    onDismiss()
+                                }
                             } label: {
-                                Image(systemName: "minus")
+                                Image(systemName: closeButtonAction == .minimize ? "minus" : "xmark")
                                     .font(.system(size: closeButtonIconSize, weight: .bold))
                                     .foregroundColor(closeButtonIconColor)
                                     .frame(width: closeButtonSize, height: closeButtonSize)
                                     .background(closeButtonBG)
                                     .clipShape(RoundedRectangle(cornerRadius: closeButtonCornerRadius))
                             }
+                            .accessibilityLabel(
+                                closeButtonAction == .minimize
+                                ? "Minimize reward offer"
+                                : "Close reward offer"
+                            )
                             .padding(.top, closeButtonTop)
                             .padding(.trailing, closeButtonTrailing)
                         }
@@ -245,6 +262,7 @@ struct DelightHeroOfferTemplate: View {
                                let rewardLogoURL = URL(string: rewardLogoUrl) {
                                 rewardBadge(url: rewardLogoURL, diameter: rewardBadgeDiameter, contentPadding: rewardLogoInnerPadding)
                                     .shadow(color: Color.black.opacity(0.14), radius: 8, y: 3)
+                                    .shadow(color: Color.black.opacity(0.14), radius: 8, y: 3)
                                     .padding(rewardLogoOverlayPadding)
                                     .offset(y: rewardLogoBadgeOffsetY)
                             } else if config.showRewardLogo {
@@ -264,7 +282,6 @@ struct DelightHeroOfferTemplate: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .ignoresSafeArea(edges: .bottom)
-        .modifier(DelightLargeSheetDetentModifier())
         .sheet(item: $safariFallbackRoute) { route in
             SafariFallbackView(url: route.url)
         }
@@ -286,14 +303,21 @@ struct DelightHeroOfferTemplate: View {
     }
 
     @ViewBuilder
-    private func heroBanner(reward: DelightPopupRewardDTO?, height: CGFloat) -> some View {
+    private func heroBanner(
+        reward: DelightPopupRewardDTO?,
+        height: CGFloat,
+        objectFit: String
+    ) -> some View {
         Group {
             if let imageUrl = reward?.postPopupMobileImage ?? reward?.postPopupWebImage,
                let imageURL = URL(string: imageUrl) {
                 if imageURL.pathExtension.lowercased() == "svg" {
-                    SVGRemoteImageView(url: imageURL)
+                    SVGRemoteImageView(url: imageURL, objectFit: cssObjectFit(from: objectFit))
                 } else {
-                    RemoteRasterImageView(url: imageURL, contentMode: .fill) {
+                    RemoteRasterImageView(
+                        url: imageURL,
+                        contentMode: contentMode(from: objectFit)
+                    ) {
                         imagePlaceholder
                     }
                 }
@@ -456,7 +480,7 @@ struct DelightHeroOfferTemplate: View {
     private func logoImage(url: URL, height: CGFloat, maxWidth: CGFloat) -> some View {
         Group {
             if url.pathExtension.lowercased() == "svg" {
-                SVGRemoteImageView(url: url)
+                SVGRemoteImageView(url: url, objectFit: "contain")
             } else {
                 RemoteRasterImageView(url: url, contentMode: .fit) {
                     RoundedRectangle(cornerRadius: 8)
@@ -617,6 +641,25 @@ struct DelightHeroOfferTemplate: View {
         max(0, (CGFloat(lineHeight) * fontSize) - fontSize)
     }
 
+    private func contentMode(from objectFit: String) -> ContentMode {
+        objectFit == "cover" ? .fill : .fit
+    }
+
+    private func cssObjectFit(from objectFit: String) -> String {
+        switch objectFit {
+        case "contain":
+            return "contain"
+        case "fill":
+            return "fill"
+        case "none":
+            return "none"
+        case "scale-down":
+            return "scale-down"
+        default:
+            return "cover"
+        }
+    }
+
     private func openCTAUrl(_ rawUrl: String?, completion: @escaping () -> Void) {
         guard let url = resolvedCTAUrl(from: rawUrl) else {
             completion()
@@ -672,16 +715,6 @@ private struct SafariFallbackView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
-private struct DelightLargeSheetDetentModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 16.0, *) {
-            content.presentationDetents([.large])
-        } else {
-            content
-        }
-    }
-}
-
 private struct RemoteRasterImageView<Placeholder: View>: View {
     let url: URL
     let contentMode: ContentMode
@@ -726,6 +759,7 @@ private final class RemoteRasterImageLoader: ObservableObject {
 
 private struct SVGRemoteImageView: UIViewRepresentable {
     let url: URL
+    let objectFit: String
 
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView(frame: .zero)
@@ -754,7 +788,7 @@ private struct SVGRemoteImageView: UIViewRepresentable {
               img {
                 width: 100%;
                 height: 100%;
-                object-fit: contain;
+                object-fit: \(objectFit);
               }
             </style>
           </head>
