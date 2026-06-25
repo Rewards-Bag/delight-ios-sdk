@@ -137,7 +137,8 @@ public enum Delight {
                 defaultLocale: "en",
                 locales: nil,
                 theme: nil,
-                rewards: []
+                rewards: [],
+                enablePresentIcon: nil
             ),
             suppressionRules: nil
         )

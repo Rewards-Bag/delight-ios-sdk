@@ -58,8 +58,9 @@ public struct DelightPopupView: View {
             DelightTemplateRegistry.view(
                 for: config,
                 theme: theme,
-                closeButtonAction: controller.closeButtonShowsDismiss ? .dismiss : .minimize,
+                closeButtonAction: controller.closeButtonAction(for: config),
                 onMinimize: {
+                    guard controller.shouldMinimizeOnCloseTap(for: config) else { return }
                     controller.minimize()
                 },
                 onPrimary: { rewardId in

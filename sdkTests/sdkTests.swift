@@ -537,7 +537,8 @@ private func makeConfig(
             defaultLocale: "en",
             locales: nil,
             theme: nil,
-            rewards: rewards
+            rewards: rewards,
+            enablePresentIcon: nil
         ),
         suppressionRules: suppressionRules ?? makeSuppressionRules()
     )

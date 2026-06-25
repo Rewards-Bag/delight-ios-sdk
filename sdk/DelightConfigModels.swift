@@ -25,6 +25,7 @@ struct DelightPopupSectionDTO: Decodable {
     let locales: [String: DelightPopupLocaleDTO]?
     let theme: DelightPopupThemeConfigDTO?
     let rewards: [DelightPopupRewardDTO]?
+    let enablePresentIcon: Bool?
 }
 
 struct DelightPopupLocaleDTO: Decodable {
@@ -203,6 +204,11 @@ struct DelightSliderArrowsThemeDTO: Decodable {
 
 extension DelightConfigDTO {
     var templateId: String { "modal_card_v1" }
+
+    /// When `false`, the popup shows an X from first render and cannot minimize to the floating present icon.
+    var isPresentIconEnabled: Bool {
+        popup?.enablePresentIcon ?? true
+    }
 
     var resolvedLocaleCode: String {
         (language ?? popup?.defaultLocale ?? "en").lowercased()

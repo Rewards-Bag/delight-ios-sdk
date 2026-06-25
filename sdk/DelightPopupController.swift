@@ -82,7 +82,7 @@ final class DelightPopupController: ObservableObject {
 
     /// Collapses the popup to a floating present icon without recording an ignore.
     func minimize() {
-        guard case .ready = state else { return }
+        guard case .ready(let config, _, _) = state, config.isPresentIconEnabled else { return }
         hidePopupOverlay()
         isMinimized = true
         isPresented = false
@@ -91,7 +91,7 @@ final class DelightPopupController: ObservableObject {
 
     /// Reopens the reward popup from the minimized present icon (close button becomes X).
     func expandFromMinimized() {
-        guard case .ready = state else { return }
+        guard case .ready(let config, _, _) = state, config.isPresentIconEnabled else { return }
         hideMinimizedBadgeOverlay()
         closeButtonShowsDismiss = true
         isMinimized = false
@@ -196,10 +196,19 @@ final class DelightPopupController: ObservableObject {
         state = .ready(selectedConfig, theme, selectedRewardId)
         currentRewardId = selectedRewardId
         didClickCurrentReward = false
-        closeButtonShowsDismiss = false
+        closeButtonShowsDismiss = !selectedConfig.isPresentIconEnabled
         isMinimized = false
         isPresented = true
         showPopupOverlay()
+    }
+
+    func closeButtonAction(for config: DelightConfigDTO) -> DelightPopupCloseButtonAction {
+        guard config.isPresentIconEnabled else { return .dismiss }
+        return closeButtonShowsDismiss ? .dismiss : .minimize
+    }
+
+    func shouldMinimizeOnCloseTap(for config: DelightConfigDTO) -> Bool {
+        config.isPresentIconEnabled && !closeButtonShowsDismiss
     }
 
     private func commitVisibleImpressionIfNeeded(at date: Date) {
@@ -276,10 +285,18 @@ final class DelightPopupController: ObservableObject {
 
     private func showMinimizedBadgeOverlay() {
 #if canImport(UIKit)
+        guard isPresentIconEnabledForCurrentPresentation else { return }
         DelightMinimizedBadgeOverlay.show(theme: minimizedBadgeTheme()) { [weak self] in
             self?.expandFromMinimized()
         }
 #endif
+    }
+
+    private var isPresentIconEnabledForCurrentPresentation: Bool {
+        if case .ready(let config, _, _) = state {
+            return config.isPresentIconEnabled
+        }
+        return config?.isPresentIconEnabled ?? true
     }
 
     private func hideMinimizedBadgeOverlay() {
