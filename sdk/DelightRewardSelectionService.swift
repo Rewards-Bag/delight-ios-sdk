@@ -172,7 +172,8 @@ enum DelightRewardSelectionService {
             defaultLocale: config.popup?.defaultLocale,
             locales: config.popup?.locales,
             theme: config.popup?.theme,
-            rewards: rewards
+            rewards: rewards,
+            enablePresentIcon: config.popup?.enablePresentIcon
         )
 
         return DelightConfigDTO(

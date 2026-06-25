@@ -154,6 +154,13 @@ The SDK exposes `DelightObjC` as an Objective-C bridge for initialization and po
 - `consentGranted`: set to `true` only when user consent is granted
 - `ignoreDailyCooldownHours`: set to `true` for QA to bypass the 5-hour daily slot cooldown (`dailyCooldownHours` treated as 0)
 
+Popup `enablePresentIcon` (CDN `popup.enablePresentIcon`):
+
+- `false` — close (X) from first render; no minimize; no floating present icon
+- `true` — minimize on first render; reopen from present icon shows X; claim or X dismisses entirely
+
+Impression counting is unchanged: first popup render only; reopening from the icon never counts again.
+
 Objective-C initialization:
 
 - `[DelightObjC initialize:locale:ignoreDailyCooldownHours:completion:]`
