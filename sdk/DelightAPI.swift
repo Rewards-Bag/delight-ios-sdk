@@ -6,7 +6,7 @@ public struct DelightRequestPayload {
     public let userToken: String?
     public let firstName: String?
     public let lastName: String?
-    public let ticketTypes: [String]
+    public let ticketTypes: [String]?
 
     public init(
         orderId: String? = nil,
@@ -14,7 +14,7 @@ public struct DelightRequestPayload {
         userToken: String? = nil,
         firstName: String? = nil,
         lastName: String? = nil,
-        ticketTypes: [String] = []
+        ticketTypes: [String]? = nil
     ) {
         self.orderId = orderId
         self.email = email

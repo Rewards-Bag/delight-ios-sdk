@@ -475,6 +475,184 @@ final class DelightSDKTests: XCTestCase {
         )
         XCTAssertEqual(afterFatigue?.popup?.rewards?.first?.id, "B")
     }
+
+    func testGWRBrandResolvesGWRTemplateId() {
+        let config = makeConfig(
+            hostDisplayName: "GWR",
+            brandName: "gwr-com",
+            rewards: [makeReward(id: "simplycook")]
+        )
+        XCTAssertEqual(config.templateId, DelightTemplateID.gwrModal)
+        XCTAssertTrue(DelightTemplateRegistry.supports(templateId: config.templateId))
+    }
+
+    func testStagecoachBrandResolvesHeroTemplateId() {
+        let config = makeConfig(
+            hostDisplayName: "Stagecoach",
+            brandName: "stagecoachbus-com",
+            rewards: [makeReward(id: "rakuten", ticketType: "adult")]
+        )
+        XCTAssertEqual(config.templateId, DelightTemplateID.modalCard)
+    }
+
+    func testRewardsWithoutTicketTypeAreAvailableToAllBaskets() {
+        let config = makeConfig(
+            rewards: [
+                makeReward(id: "generic", ticketType: ""),
+                makeReward(id: "child-only", ticketType: "child")
+            ]
+        )
+
+        let selected = select(
+            config: config,
+            payload: makePayload(
+                orderId: "order-1",
+                ticketTypes: ["adult"],
+                userToken: UUID().uuidString.lowercased()
+            )
+        )
+        XCTAssertEqual(selected?.popup?.rewards?.first?.id, "generic")
+    }
+
+    func testGWRConfigReturnsAllVisibleRewardsForCarousel() {
+        let config = makeConfig(
+            hostDisplayName: "GWR",
+            brandName: "gwr-com",
+            applyDefaultSuppressionRules: false,
+            rewards: [
+                makeReward(id: "simplycook", ticketType: ""),
+                makeReward(id: "bookbeat", ticketType: "")
+            ]
+        )
+
+        let selected = select(
+            config: config,
+            payload: makePayload(
+                orderId: "order-1",
+                ticketTypes: ["adult"],
+                userToken: UUID().uuidString.lowercased()
+            )
+        )
+        XCTAssertEqual(selected?.popup?.rewards?.compactMap(\.id), ["simplycook", "bookbeat"])
+    }
+
+    func testStagecoachConfigStillReturnsSingleSelectedReward() {
+        let config = makeConfig(
+            hostDisplayName: "Stagecoach",
+            brandName: "stagecoachbus-com",
+            rewards: [
+                makeReward(id: "A", ticketType: "adult"),
+                makeReward(id: "B", ticketType: "adult")
+            ]
+        )
+
+        let selected = select(
+            config: config,
+            payload: makePayload(
+                orderId: "order-1",
+                ticketTypes: ["adult"],
+                userToken: UUID().uuidString.lowercased()
+            )
+        )
+        XCTAssertEqual(selected?.popup?.rewards?.compactMap(\.id), ["A"])
+    }
+
+    func testGWRConfigJSONHostDisplayNameSelectsGWRTemplate() throws {
+        let json = """
+        {
+          "hostDisplayName": "GWR",
+          "partnerId": "test",
+          "popup": { "enabled": true, "rewards": [] }
+        }
+        """.data(using: .utf8)!
+
+        var config = try JSONDecoder().decode(DelightConfigDTO.self, from: json)
+        XCTAssertEqual(config.hostDisplayName, "GWR")
+        XCTAssertNil(config.suppressionRules)
+        XCTAssertEqual(config.templateId, DelightTemplateID.gwrModal)
+
+        config.brandName = "gwr-com"
+        XCTAssertEqual(config.templateId, DelightTemplateID.gwrModal)
+    }
+
+    func testMissingSuppressionRulesSkipsCapsAndStillShowsRewards() {
+        let userToken = UUID().uuidString.lowercased()
+        let config = makeConfig(
+            hostDisplayName: "GWR",
+            brandName: "gwr-com",
+            applyDefaultSuppressionRules: false,
+            rewards: [
+                makeReward(id: "simplycook", ticketType: ""),
+                makeReward(id: "bookbeat", ticketType: "")
+            ]
+        )
+        XCTAssertNil(config.suppressionRules)
+
+        for index in 1...20 {
+            recordImpression(
+                config: config,
+                payload: makePayload(
+                    orderId: "order-\(index)",
+                    ticketTypes: ["adult"],
+                    userToken: userToken
+                ),
+                rewardId: "simplycook"
+            )
+        }
+
+        let selected = select(
+            config: config,
+            payload: makePayload(
+                orderId: "order-21",
+                ticketTypes: ["adult"],
+                userToken: userToken
+            )
+        )
+        XCTAssertEqual(selected?.popup?.rewards?.compactMap(\.id), ["simplycook", "bookbeat"])
+    }
+
+    func testNilTicketTypesShowsRewardsThatHaveNoTicketType() {
+        let config = makeConfig(
+            hostDisplayName: "GWR",
+            brandName: "gwr-com",
+            applyDefaultSuppressionRules: false,
+            rewards: [
+                makeReward(id: "simplycook", ticketType: ""),
+                makeReward(id: "bookbeat")
+            ]
+        )
+
+        let selected = select(
+            config: config,
+            payload: makePayload(
+                orderId: "order-1",
+                ticketTypes: nil,
+                userToken: UUID().uuidString.lowercased()
+            )
+        )
+        XCTAssertEqual(selected?.popup?.rewards?.compactMap(\.id), ["simplycook", "bookbeat"])
+    }
+
+    func testNilTicketTypesDoesNotSelectTicketScopedRewards() {
+        let config = makeConfig(
+            hostDisplayName: "Stagecoach",
+            brandName: "stagecoachbus-com",
+            rewards: [
+                makeReward(id: "A", ticketType: "adult"),
+                makeReward(id: "B", ticketType: "child")
+            ]
+        )
+
+        let selected = select(
+            config: config,
+            payload: makePayload(
+                orderId: "order-1",
+                ticketTypes: nil,
+                userToken: UUID().uuidString.lowercased()
+            )
+        )
+        XCTAssertNil(selected)
+    }
 }
 
 private func select(
@@ -524,12 +702,16 @@ private func makeSuppressionRules(
 }
 
 private func makeConfig(
+    hostDisplayName: String? = nil,
+    brandName: String? = nil,
     suppressionRules: DelightSuppressionRulesDTO? = nil,
+    applyDefaultSuppressionRules: Bool = true,
     rewards: [DelightPopupRewardDTO]
 ) -> DelightConfigDTO {
     DelightConfigDTO(
         partnerId: "test-partner",
         partnerLogo: nil,
+        hostDisplayName: hostDisplayName,
         apiUrl: "https://api.rewardsbag.com",
         language: "en",
         popup: DelightPopupSectionDTO(
@@ -540,7 +722,8 @@ private func makeConfig(
             rewards: rewards,
             enablePresentIcon: nil
         ),
-        suppressionRules: suppressionRules ?? makeSuppressionRules()
+        suppressionRules: suppressionRules ?? (applyDefaultSuppressionRules ? makeSuppressionRules() : nil),
+        brandName: brandName
     )
 }
 
@@ -568,7 +751,7 @@ private func makeReward(
 
 private func makePayload(
     orderId: String,
-    ticketTypes: [String],
+    ticketTypes: [String]?,
     userToken: String
 ) -> DelightRequestPayload {
     DelightRequestPayload(

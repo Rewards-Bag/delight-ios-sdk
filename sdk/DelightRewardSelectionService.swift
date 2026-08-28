@@ -29,7 +29,18 @@ enum DelightRewardSelectionService {
         let userKey = userToken(from: payload)
         guard !userKey.isEmpty else { return nil }
 
-        let rules = DelightSuppressionRules.resolved(from: config.suppressionRules)
+        let allVisibleRewards = (popup.rewards ?? []).filter { $0.show != false }
+        let selectedTicketTypes = normalizedTicketTypes(from: payload.ticketTypes)
+
+        guard let rulesDTO = config.suppressionRules else {
+            return selectWithoutSuppression(
+                from: config,
+                allVisibleRewards: allVisibleRewards,
+                selectedTicketTypes: selectedTicketTypes
+            )
+        }
+
+        let rules = DelightSuppressionRules.resolved(from: rulesDTO)
         var state = loadState(for: userKey)
         state.prune(now: now, retentionDays: rules.retentionDays)
         syncFatigueRestIfNeeded(state: &state, rules: rules, now: now)
@@ -38,7 +49,14 @@ enum DelightRewardSelectionService {
            let assignedRewardId = state.transactionRewards[orderId],
            let assignedReward = reward(withId: assignedRewardId, in: popup.rewards ?? []) {
             saveState(state, for: userKey)
-            return rewardsConfig(from: config, rewards: [assignedReward])
+            return rewardsConfig(
+                from: config,
+                rewards: displayRewards(
+                    from: config,
+                    selected: assignedReward,
+                    allVisible: allVisibleRewards
+                )
+            )
         }
 
         if !passesMonthlyImpressionCap(state: state, now: now, rules: rules) {
@@ -58,13 +76,7 @@ enum DelightRewardSelectionService {
             return nil
         }
 
-        let selectedTicketTypes = normalizedTicketTypes(from: payload.ticketTypes)
-        guard !selectedTicketTypes.isEmpty else {
-            saveState(state, for: userKey)
-            return nil
-        }
-
-        let baseRewards = (popup.rewards ?? []).filter { $0.show != false }
+        let baseRewards = allVisibleRewards
         guard let selectedReward = pickEligibleReward(
             selectedTicketTypes: selectedTicketTypes,
             baseRewards: baseRewards,
@@ -83,7 +95,14 @@ enum DelightRewardSelectionService {
         }
         saveState(state, for: userKey)
 
-        return rewardsConfig(from: config, rewards: [selectedReward])
+        return rewardsConfig(
+            from: config,
+            rewards: displayRewards(
+                from: config,
+                selected: selectedReward,
+                allVisible: allVisibleRewards
+            )
+        )
     }
 
     /// First render only. Reopening from the minimized icon must not call this again for the same transaction.
@@ -96,6 +115,7 @@ enum DelightRewardSelectionService {
         guard !rewardId.isEmpty else { return }
         let userKey = userToken(from: payload)
         guard !userKey.isEmpty else { return }
+        guard let suppressionRules else { return }
 
         let rules = DelightSuppressionRules.resolved(from: suppressionRules)
         var state = loadState(for: userKey)
@@ -124,8 +144,7 @@ enum DelightRewardSelectionService {
         guard !userKey.isEmpty else { return }
 
         var state = loadState(for: userKey)
-        let rules = DelightSuppressionRules.resolved(from: nil)
-        state.prune(now: Date(), retentionDays: rules.retentionDays)
+        state.prune(now: Date(), retentionDays: 90)
         state.recordClick(rewardId: rewardId, at: Date())
         saveState(state, for: userKey)
     }
@@ -163,6 +182,52 @@ enum DelightRewardSelectionService {
         }
     }
 
+    private static func selectWithoutSuppression(
+        from config: DelightConfigDTO,
+        allVisibleRewards: [DelightPopupRewardDTO],
+        selectedTicketTypes: [String]
+    ) -> DelightConfigDTO? {
+        let typeOrder = orderedRewardsForTicketTypes(
+            selectedTicketTypes: selectedTicketTypes,
+            baseRewards: allVisibleRewards
+        )
+        let ageEligibleRewards = applyAgeSuppression(
+            to: typeOrder,
+            selectedTicketTypes: selectedTicketTypes
+        )
+        guard let selectedReward = ageEligibleRewards.first else { return nil }
+
+        return rewardsConfig(
+            from: config,
+            rewards: displayRewards(
+                from: config,
+                selected: selectedReward,
+                allVisible: allVisibleRewards
+            )
+        )
+    }
+
+    private static func displayRewards(
+        from config: DelightConfigDTO,
+        selected: DelightPopupRewardDTO,
+        allVisible: [DelightPopupRewardDTO]
+    ) -> [DelightPopupRewardDTO] {
+        guard config.isGWRBrand else {
+            return [selected]
+        }
+
+        var ordered = [selected]
+        var seen = Set<String>()
+        if let selectedId = selected.id {
+            seen.insert(selectedId)
+        }
+        for reward in allVisible {
+            guard let id = reward.id, seen.insert(id).inserted else { continue }
+            ordered.append(reward)
+        }
+        return ordered
+    }
+
     private static func rewardsConfig(
         from config: DelightConfigDTO,
         rewards: [DelightPopupRewardDTO]
@@ -179,10 +244,12 @@ enum DelightRewardSelectionService {
         return DelightConfigDTO(
             partnerId: config.partnerId,
             partnerLogo: config.partnerLogo,
+            hostDisplayName: config.hostDisplayName,
             apiUrl: config.apiUrl,
             language: config.language,
             popup: rewardsPopup,
-            suppressionRules: config.suppressionRules
+            suppressionRules: config.suppressionRules,
+            brandName: config.brandName
         )
     }
 
@@ -190,6 +257,10 @@ enum DelightRewardSelectionService {
         selectedTicketTypes: [String],
         baseRewards: [DelightPopupRewardDTO]
     ) -> [DelightPopupRewardDTO] {
+        if selectedTicketTypes.isEmpty {
+            return rewardsWithoutTicketType(from: baseRewards)
+        }
+
         var ordered: [DelightPopupRewardDTO] = []
         var seenRewardIds = Set<String>()
 
@@ -202,6 +273,15 @@ enum DelightRewardSelectionService {
         }
 
         return ordered
+    }
+
+    private static func rewardsWithoutTicketType(
+        from rewards: [DelightPopupRewardDTO]
+    ) -> [DelightPopupRewardDTO] {
+        rewards.filter { reward in
+            guard let id = reward.id, !id.isEmpty, reward.show != false else { return false }
+            return normalizedTicketType(reward.ticketType).isEmpty
+        }
     }
 
     private static func pickEligibleReward(
@@ -272,10 +352,10 @@ enum DelightRewardSelectionService {
         state.dailyImpressedRewardIds[gmtDayKey(for: date)] ?? []
     }
 
-    private static func normalizedTicketTypes(from rawTypes: [String]) -> [String] {
+    private static func normalizedTicketTypes(from rawTypes: [String]?) -> [String] {
         var seen = Set<String>()
         var normalized: [String] = []
-        for type in rawTypes {
+        for type in rawTypes ?? [] {
             let value = type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             guard !value.isEmpty, !seen.contains(value) else { continue }
             seen.insert(value)
@@ -386,7 +466,11 @@ enum DelightRewardSelectionService {
 
         return rewards.filter { reward in
             guard let id = reward.id, !id.isEmpty, reward.show != false else { return false }
-            return normalizedTicketType(reward.ticketType) == normalizedType
+            let rewardType = normalizedTicketType(reward.ticketType)
+            if rewardType.isEmpty {
+                return true
+            }
+            return rewardType == normalizedType
         }
     }
 
@@ -448,23 +532,24 @@ private struct DelightSuppressionRules {
     let suppressionPeriodAfterClickDays: TimeInterval
     let retentionDays: TimeInterval
 
-    /// Values come from `config.suppressionRules`. Defaults below apply only when a field is missing from the CDN/bundled config.
-    static func resolved(from dto: DelightSuppressionRulesDTO?) -> DelightSuppressionRules {
+    /// Values come from `config.suppressionRules`. Defaults below apply only when a field is missing from that block.
+    /// When the config omits `suppressionRules` entirely, callers must skip this and not apply suppression.
+    static func resolved(from dto: DelightSuppressionRulesDTO) -> DelightSuppressionRules {
         let dailyCooldownHours: TimeInterval
         if DelightRewardSelectionService.ignoreDailyCooldownHours {
             dailyCooldownHours = 0
         } else {
-            dailyCooldownHours = TimeInterval(dto?.dailyCooldownHours ?? 5)
+            dailyCooldownHours = TimeInterval(dto.dailyCooldownHours ?? 5)
         }
 
         return DelightSuppressionRules(
-            maxImpressionsPerUserPerMonth: dto?.maxImpressionsPerUserPerMonth ?? 15,
-            maxRewardsPerUserPerDay: dto?.maxRewardsPerUserPerDay ?? 2,
+            maxImpressionsPerUserPerMonth: dto.maxImpressionsPerUserPerMonth ?? 15,
+            maxRewardsPerUserPerDay: dto.maxRewardsPerUserPerDay ?? 2,
             dailyCooldownHours: dailyCooldownHours,
-            maxImpressionsPerRewardWithoutEngagement: dto?.maxImpressionsPerRewardWithoutEngagement ?? 3,
-            restPeriodAfterNoEngagementDays: TimeInterval(dto?.restPeriodAfterNoEngagementDays ?? 21),
-            suppressionPeriodAfterClickDays: TimeInterval(dto?.suppressionPeriodAfterClickDays ?? 45),
-            retentionDays: TimeInterval(dto?.retentionDays ?? 90)
+            maxImpressionsPerRewardWithoutEngagement: dto.maxImpressionsPerRewardWithoutEngagement ?? 3,
+            restPeriodAfterNoEngagementDays: TimeInterval(dto.restPeriodAfterNoEngagementDays ?? 21),
+            suppressionPeriodAfterClickDays: TimeInterval(dto.suppressionPeriodAfterClickDays ?? 45),
+            retentionDays: TimeInterval(dto.retentionDays ?? 90)
         )
     }
 }

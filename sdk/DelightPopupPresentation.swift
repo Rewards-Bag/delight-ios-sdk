@@ -66,15 +66,22 @@ public struct DelightPopupView: View {
                 onPrimary: { rewardId in
                     controller.markRewardClicked(rewardId)
                     controller.callbacks.onPrimaryClick?(rewardId)
-                    Self.dismiss()
+                    if !config.isGWRBrand {
+                        Self.dismiss()
+                    }
                 },
                 onDismiss: {
                     controller.markDismissedByCloseButton()
                     Self.dismiss()
-                }
+                },
+                currentRewardIndex: $controller.carouselRewardIndex,
+                claimedRewardIds: $controller.claimedRewardIds
             )
             .onAppear {
-                controller.markPopupBecameVisible()
+                controller.markRewardBecameVisible(at: controller.carouselRewardIndex, in: config)
+            }
+            .onChange(of: controller.carouselRewardIndex) { index in
+                controller.markRewardBecameVisible(at: index, in: config)
             }
         case .failed:
             EmptyView()
