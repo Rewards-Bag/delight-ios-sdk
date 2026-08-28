@@ -124,19 +124,20 @@ public final class DelightObjC: NSObject {
             ticketTypes: ticketTypes
         )
 
-        var callbacks = DelightCallbacks()
-        callbacks.onImpression = { rewardId in
-            onImpression?(rewardId as NSString?)
-        }
-        callbacks.onPrimaryClick = { rewardId in
-            onPrimaryClick?(rewardId as NSString?)
-        }
-        callbacks.onDismiss = {
-            onDismiss?()
-        }
-        callbacks.onError = { message in
-            onError?(message as NSString)
-        }
+        let callbacks = DelightCallbacks(
+            onImpression: { rewardId in
+                onImpression?(rewardId as NSString?)
+            },
+            onPrimaryClick: { rewardId in
+                onPrimaryClick?(rewardId as NSString?)
+            },
+            onDismiss: {
+                onDismiss?()
+            },
+            onError: { message in
+                onError?(message as NSString)
+            }
+        )
 
         Task { @MainActor in
             Delight.showRewardPopup(payload, callbacks: callbacks)
