@@ -36,7 +36,8 @@ public enum Delight {
             }
             DelightPopupController.shared.config = configWithResolvedLocale(
                 config,
-                explicitLocale: locale
+                explicitLocale: locale,
+                brandName: brandName
             )
             controller.setInitializedBrandName(brandName)
             controller.clearInitializationError()
@@ -44,7 +45,7 @@ public enum Delight {
             // Crash isolation: never throw initialization failures into host apps.
             let message = "Failed to initialize Delight SDK config: \(error.localizedDescription)"
             logError(message)
-            controller.config = safeEmptyConfig()
+            controller.config = safeEmptyConfig(brandName: brandName)
             controller.setInitializedBrandName(brandName)
             controller.reportInitializationError(message)
         }
@@ -126,10 +127,11 @@ public enum Delight {
         return created
     }
 
-    private static func safeEmptyConfig() -> DelightConfigDTO {
+    private static func safeEmptyConfig(brandName: String? = nil) -> DelightConfigDTO {
         DelightConfigDTO(
             partnerId: nil,
             partnerLogo: nil,
+            hostDisplayName: nil,
             apiUrl: nil,
             language: "en",
             popup: DelightPopupSectionDTO(
@@ -140,23 +142,27 @@ public enum Delight {
                 rewards: [],
                 enablePresentIcon: nil
             ),
-            suppressionRules: nil
+            suppressionRules: nil,
+            brandName: brandName
         )
     }
 
     private static func configWithResolvedLocale(
         _ config: DelightConfigDTO,
-        explicitLocale: String
+        explicitLocale: String,
+        brandName: String
     ) -> DelightConfigDTO {
         let resolvedLocale = normalizedLocaleCode(explicitLocale)
             ?? "en"
         return DelightConfigDTO(
             partnerId: config.partnerId,
             partnerLogo: config.partnerLogo,
+            hostDisplayName: config.hostDisplayName,
             apiUrl: config.apiUrl,
             language: resolvedLocale,
             popup: config.popup,
-            suppressionRules: config.suppressionRules
+            suppressionRules: config.suppressionRules,
+            brandName: brandName
         )
     }
 

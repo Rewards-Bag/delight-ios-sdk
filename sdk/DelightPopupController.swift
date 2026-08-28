@@ -29,12 +29,15 @@ final class DelightPopupController: ObservableObject {
     @Published var callbacks: DelightCallbacks = .init()
     @Published var config: DelightConfigDTO?
     @Published var consentGranted = true
+    /// Survives minimize/reopen because the overlay view (and its `@State`) is destroyed.
+    @Published var carouselRewardIndex = 0
+    @Published var claimedRewardIds = Set<String>()
 
     private var currentRewardId: String?
     private var didClickCurrentReward = false
     private var didRecordIgnoreForCurrentPresentation = false
     private var didCommitVisibleImpression = false
-    private var didRegisterVisibleSession = false
+    private var impressedRewardIdsThisPresentation = Set<String>()
     private var initializationErrorMessage: String?
     private var initializedBrandName: String?
 
@@ -99,13 +102,22 @@ final class DelightPopupController: ObservableObject {
         showPopupOverlay()
     }
 
-    func markPopupBecameVisible() {
-        guard !didRegisterVisibleSession else { return }
-        didRegisterVisibleSession = true
-        let now = Date()
-        commitVisibleImpressionIfNeeded(at: now)
-        triggerBackendImpressionTracking()
-        callbacks.onImpression?(currentRewardId)
+    func markRewardBecameVisible(at index: Int, in config: DelightConfigDTO) {
+        let rewards = config.resolvedRewards
+        guard !rewards.isEmpty else { return }
+        let clampedIndex = min(max(index, 0), rewards.count - 1)
+        markRewardBecameVisible(rewards[clampedIndex].id)
+    }
+
+    func markRewardBecameVisible(_ rewardId: String?) {
+        guard let rewardId, !rewardId.isEmpty else { return }
+        guard !impressedRewardIdsThisPresentation.contains(rewardId) else { return }
+
+        impressedRewardIdsThisPresentation.insert(rewardId)
+        currentRewardId = rewardId
+        commitVisibleImpressionIfNeeded(at: Date())
+        triggerBackendImpressionTracking(rewardId: rewardId)
+        callbacks.onImpression?(rewardId)
     }
 
     func markDismissedByCloseButton() {
@@ -249,7 +261,9 @@ final class DelightPopupController: ObservableObject {
         didClickCurrentReward = false
         didRecordIgnoreForCurrentPresentation = false
         didCommitVisibleImpression = false
-        didRegisterVisibleSession = false
+        impressedRewardIdsThisPresentation = []
+        carouselRewardIndex = 0
+        claimedRewardIds = []
     }
 
     private func handleNonDisplayableError(_ message: String) {
@@ -305,12 +319,12 @@ final class DelightPopupController: ObservableObject {
 #endif
     }
 
-    private func triggerBackendImpressionTracking() {
+    private func triggerBackendImpressionTracking(rewardId: String) {
         guard
             consentGranted,
             let config,
             let partnerId = config.partnerId, !partnerId.isEmpty,
-            let rewardId = currentRewardId, !rewardId.isEmpty
+            !rewardId.isEmpty
         else { return }
 
         let request = DelightTrackingService.RewardImpressionRequest(

@@ -3,10 +3,23 @@ import Foundation
 struct DelightConfigDTO: Decodable {
     let partnerId: String?
     let partnerLogo: String?
+    let hostDisplayName: String?
     let apiUrl: String?
     let language: String?
     let popup: DelightPopupSectionDTO?
     let suppressionRules: DelightSuppressionRulesDTO?
+    /// Set after CDN fetch from `Delight.initialize(brandName:)`. Not present in partner JSON.
+    var brandName: String? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case partnerId
+        case partnerLogo
+        case hostDisplayName
+        case apiUrl
+        case language
+        case popup
+        case suppressionRules
+    }
 }
 
 struct DelightSuppressionRulesDTO: Decodable {
@@ -202,8 +215,35 @@ struct DelightSliderArrowsThemeDTO: Decodable {
     let borderRadius: String?
 }
 
+enum DelightTemplateID {
+    static let modalCard = "modal_card_v1"
+    static let modalCompact = "modal_compact_v1"
+    static let gwrModal = "gwr_modal_v1"
+}
+
 extension DelightConfigDTO {
-    var templateId: String { "modal_card_v1" }
+    var templateId: String {
+        if isGWRBrand {
+            return DelightTemplateID.gwrModal
+        }
+        return DelightTemplateID.modalCard
+    }
+
+    var isGWRBrand: Bool {
+        Self.isGWR(brandName: brandName, hostDisplayName: hostDisplayName)
+    }
+
+    static func isGWR(brandName: String?, hostDisplayName: String?) -> Bool {
+        let tokens = [brandName, hostDisplayName]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty }
+        return tokens.contains { token in
+            token == "gwr"
+                || token.hasPrefix("gwr-")
+                || token.hasPrefix("gwr.")
+                || token.contains("gwr-com")
+        }
+    }
 
     /// When `false`, the popup shows an X from first render and cannot minimize to the floating present icon.
     var isPresentIconEnabled: Bool {

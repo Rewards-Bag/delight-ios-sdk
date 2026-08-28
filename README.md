@@ -1,6 +1,6 @@
 # DelightSDK
 
-DelightSDK is an iOS SDK for showing post-purchase reward popups with local suppression rules and configurable templates.
+DelightSDK is an iOS SDK for showing post-purchase reward popups. Layout, copy, and eligibility come from the partner CDN config. Local suppression and tracking run on-device.
 
 ## Requirements
 
@@ -42,11 +42,11 @@ import DelightSDK
 
 ### 2) Initialize the SDK
 
-Call once on app startup (for example in `.task`, app launch, or bootstrap flow):
+Call once on app startup (for example in `.task`, app launch, or bootstrap flow). `brandName` is the partner identifier RewardsBag provides; the SDK loads `https://cdn.rewardsbag.com/configs/{brandName}.json`.
 
 ```swift
 try await Delight.initialize(
-    brandName: "rewardsbag-provided-brand-name",
+    brandName: "YOUR_BRAND_NAME",
     locale: "en",
     consentGranted: true
 )
@@ -54,7 +54,7 @@ try await Delight.initialize(
 
 ### 3) Add the popup presenter
 
-Attach it to a high-level container so the sheet can be presented:
+Attach it to a high-level container so the overlay can be presented:
 
 ```swift
 .overlay {
@@ -64,14 +64,16 @@ Attach it to a high-level container so the sheet can be presented:
 
 ### 4) Show a reward popup
 
+All payload fields are optional. Pass `ticketTypes` when the campaign filters rewards by basket/context types; omit or pass `nil` when it does not.
+
 ```swift
 Delight.showRewardPopup(
     DelightRequestPayload(
-        orderId: "",
-        email: "",
-        firstName: "",
-        lastName: "",
-        ticketTypes: ["adult"]
+        orderId: "ORDER-123",
+        email: "customer@example.com",
+        firstName: "Jane",
+        lastName: "Doe",
+        ticketTypes: nil
     ),
     callbacks: DelightCallbacks(
         onImpression: { rewardId in
@@ -82,6 +84,9 @@ Delight.showRewardPopup(
         },
         onDismiss: {
             print("Popup dismissed")
+        },
+        onError: { message in
+            print("Error:", message)
         }
     )
 )
@@ -110,7 +115,7 @@ The SDK exposes `DelightObjC` as an Objective-C bridge for initialization and po
 // `initialize` does not take a consent argument in Objective-C.
 [DelightObjC setConsentGranted:YES];
 
-[DelightObjC initialize:@"rewardsbag-provided-brand-name"
+[DelightObjC initialize:@"YOUR_BRAND_NAME"
                 locale:@"en"
               completion:^(NSError * _Nullable error) {
     if (error) {
@@ -121,21 +126,26 @@ The SDK exposes `DelightObjC` as an Objective-C bridge for initialization and po
 
 ### 3) Show a reward popup
 
+All arguments are optional, including `ticketTypes`.
+
 ```objc
-[DelightObjC showRewardPopup:nil
-                  email:nil
-              userToken:nil
-              firstName:nil
-               lastName:nil
-            ticketTypes:@[@"adult"]
-           onImpression:^(NSString * _Nullable rewardId) {
+[DelightObjC showRewardPopup:@"ORDER-123"
+                       email:@"customer@example.com"
+                   userToken:nil
+                   firstName:@"Jane"
+                    lastName:@"Doe"
+                 ticketTypes:nil
+                onImpression:^(NSString * _Nullable rewardId) {
     NSLog(@"Impression: %@", rewardId);
 }
-         onPrimaryClick:^(NSString * _Nullable rewardId) {
+              onPrimaryClick:^(NSString * _Nullable rewardId) {
     NSLog(@"Primary click: %@", rewardId);
 }
-              onDismiss:^{
+                   onDismiss:^{
     NSLog(@"Popup dismissed");
+}
+                      onError:^(NSString * message) {
+    NSLog(@"Error: %@", message);
 }];
 ```
 
@@ -149,49 +159,82 @@ The SDK exposes `DelightObjC` as an Objective-C bridge for initialization and po
 
 `Delight.initialize(...)` supports:
 
-- `brandName`: production brand identifier provided by RewardsBag
+- `brandName`: partner identifier provided by RewardsBag
 - `locale`: locale/language code for popup content (default: `"en"`)
+- `cdnBaseURL`: config host (default: `https://cdn.rewardsbag.com`)
+- `useBundledConfig`: when `true`, loads bundled `config.json` and skips the CDN (local testing)
 - `consentGranted`: set to `true` only when user consent is granted
-- `ignoreDailyCooldownHours`: set to `true` for QA to bypass the 5-hour daily slot cooldown (`dailyCooldownHours` treated as 0)
-
-Popup `enablePresentIcon` (CDN `popup.enablePresentIcon`):
-
-- `false` — close (X) from first render; no minimize; no floating present icon
-- `true` — minimize on first render; reopen from present icon shows X; claim or X dismisses entirely
-
-Impression counting is unchanged: first popup render only; reopening from the icon never counts again.
+- `ignoreDailyCooldownHours`: set to `true` for QA so `dailyCooldownHours` is treated as 0
 
 Objective-C initialization:
 
 - `[DelightObjC initialize:locale:ignoreDailyCooldownHours:completion:]`
 - `[DelightObjC initialize:locale:completion:]` (cooldown enforced)
 
-For `DelightObjC showRewardPopup`, only `ticketTypes` is required. `orderId`, `email`, `userToken`, `firstName`, and `lastName` are optional.
+## Popup Behavior
+
+Template, copy, images, and CTA URLs come from the partner config. The SDK picks a supported template from that config.
+
+### Present icon (`popup.enablePresentIcon`)
+
+- `false` — close (X) from first render; no minimize; no floating present icon
+- `true` — minimize (`−`) on first render; reopen from the present icon shows X; X dismisses fully
+
+Minimize does not record an ignore. Reopening from the icon restores the same session (including the current carousel slide and already-claimed rewards).
+
+### Rewards shown
+
+Depending on the campaign, the popup shows a single reward or a carousel of eligible rewards.
+
+- Claim records a click/claim for the visible reward.
+- Some campaigns dismiss on claim; others stay open and move to the next unclaimed reward.
+- When every reward in the current popup has been claimed, the popup dismisses.
+
+### Impressions
+
+An impression fires the first time a reward becomes visible in the current presentation:
+
+- First open of the popup
+- Moving to another carousel slide that has not been seen yet in this session
+
+`onImpression` and backend impression tracking both receive that reward’s id. Reopening from the present icon does not recount rewards that were already impressed. A new `showRewardPopup` call starts a new presentation.
+
+## Request Payload
+
+| Field | Required | Notes |
+|-------|----------|--------|
+| `orderId` | No | Same order id returns the same assigned reward if one was already selected |
+| `email` | No | Used for claim tracking when present |
+| `userToken` | No | The SDK generates and persists one when omitted |
+| `firstName` / `lastName` | No | |
+| `ticketTypes` | No | Context labels used to match rewards. `nil` / empty only matches rewards with no ticket type. Non-empty values build an ordered pool from those types |
 
 ## QA / Local Testing
 
-- `Delight.resetDailySuppressionState()` clears today's daily reward slots (simulates GMT midnight). Fatigue, click suppression, and monthly history are preserved. Use this to re-test first/second daily rewards in one session.
-- `Delight.initialize(..., ignoreDailyCooldownHours: true)` bypasses the 5-hour cooldown between daily slot 1 and slot 2 for QA.
+- `Delight.resetDailySuppressionState()` clears today's daily reward slots (simulates GMT midnight). Fatigue, click suppression, and monthly history are preserved.
+- `Delight.initialize(..., ignoreDailyCooldownHours: true)` bypasses the daily slot cooldown for QA.
 - `Delight.clearLocalData()` wipes all local suppression history and the SDK user token.
 - Objective-C: `[DelightObjC resetDailySuppressionState]` and `[DelightObjC clearLocalData]`.
 
 ## Local Suppression Rules
 
-All suppression and counting is on-device only (UserDefaults). Config values come from the dashboard CDN `suppressionRules` block; logic is fixed in the SDK.
+Suppression runs only when the CDN config includes a `suppressionRules` block. If that block is omitted, the SDK does not apply caps, cooldowns, fatigue, or click suppression.
 
-| Rule | CDN default (`stagecoachbus-com.json`) |
-|------|----------------------------------------|
-| Rewards per GMT day | 2 (must be different reward IDs) |
+When the block is present, counting is on-device (UserDefaults). Missing fields use the SDK fallbacks below.
+
+| Key | Fallback |
+|-----|----------|
+| `maxRewardsPerUserPerDay` | 2 (different reward IDs) |
 | `dailyCooldownHours` | 5 |
 | `maxImpressionsPerRewardWithoutEngagement` | 3 |
 | `restPeriodAfterNoEngagementDays` | 21 |
-| Monthly impression cap (all rewards) | 15 per GMT month |
+| `maxImpressionsPerUserPerMonth` | 15 per GMT month |
 | `suppressionPeriodAfterClickDays` | 45 |
-| `retentionDays` (per reward, last activity) | 90 |
+| `retentionDays` | 90 (per-reward storage housekeeping; must exceed click suppression) |
 
-**Selection:** On each purchase, the SDK builds one ordered pool from every selected ticket type (in basket order), then shows the first eligible reward from that pool. One reward per purchase.
+**Selection:** Visible rewards are filtered by `ticketTypes` (when provided), then the first eligible reward is chosen. Campaigns that show a carousel include the remaining visible rewards after the selected one.
 
-**Purchase blocking:** No reward if daily cap reached, monthly cap reached, or slot 2 is requested within the 5-hour cooldown (cooldown purchases do not consume a slot).
+**Purchase blocking (when rules are present):** No popup if the daily cap is reached, the monthly cap is reached, or the next daily slot is requested inside the cooldown (cooldown attempts do not consume a slot).
 
 **Daily reset:** GMT midnight. **Monthly reset:** GMT calendar month.
 
@@ -215,6 +258,6 @@ All suppression and counting is on-device only (UserDefaults). Config values com
 
 ## Notes
 
-- Footer links, CTA handling, and local suppression are handled by the SDK.
-- Ensure your host view remains mounted while presenting the popup (`DelightPopupPresenter` must stay in the view hierarchy).
+- Footer links, CTA handling, impressions, claims, and local suppression are handled by the SDK.
+- Keep `DelightPopupPresenter` mounted in the view hierarchy while a popup may be shown.
 - If the API is unreachable, returns an error, or configuration is invalid, the SDK fires the error callback and does not display the popup.
