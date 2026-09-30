@@ -16,9 +16,13 @@ struct DelightGWRTemplate: View {
     @State private var safariFallbackRoute: SafariFallbackRoute?
 
     var body: some View {
-        let rewards = config.resolvedRewards
-        let clampedIndex = rewards.isEmpty ? 0 : min(currentRewardIndex, rewards.count - 1)
-        let reward = rewards.isEmpty ? nil : rewards[clampedIndex]
+        let allRewards = config.resolvedRewards
+        let visibleSourceIndices = unclaimedSourceIndices(rewards: allRewards, claimed: claimedRewardIds)
+        let sourceIndex = resolvedSourceIndex(
+            current: currentRewardIndex,
+            visibleSourceIndices: visibleSourceIndices
+        )
+        let reward = allRewards.indices.contains(sourceIndex) ? allRewards[sourceIndex] : nil
         let rewardLocale = config.resolvedRewardLocale(for: reward)
         let popupLocale = config.resolvedPopupLocale
         let orderLineFontSize = CGFloat(config.orderLineFontSize)
@@ -73,10 +77,10 @@ struct DelightGWRTemplate: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
 
-                    if config.showSlider, rewards.count > 1 {
+                    if config.showSlider, visibleSourceIndices.count > 1 {
                         numberedSliderControls(
-                            rewardCount: rewards.count,
-                            selectedIndex: clampedIndex,
+                            visibleSourceIndices: visibleSourceIndices,
+                            selectedSourceIndex: sourceIndex,
                             activeColor: sliderDotActive,
                             inactiveColor: sliderDotInactive,
                             arrowColor: sliderArrowIcon
@@ -108,19 +112,21 @@ struct DelightGWRTemplate: View {
 
                     if config.showCTAButton {
                         Button {
-                            let claimedIndex = clampedIndex
-                            let claimKey = rewardClaimKey(reward, index: claimedIndex)
+                            let claimedSourceIndex = sourceIndex
+                            let claimKey = rewardClaimKey(reward, index: claimedSourceIndex)
+                            let visiblePosition = visibleSourceIndices.firstIndex(of: claimedSourceIndex) ?? 0
                             openCTAUrl(reward?.ctaUrl) {
                                 claimedRewardIds.insert(claimKey)
                                 onPrimary(reward?.id)
-                                if let nextIndex = nextUnclaimedIndex(
-                                    after: claimedIndex,
-                                    rewards: rewards,
-                                    claimed: claimedRewardIds.union([claimKey])
-                                ) {
-                                    currentRewardIndex = nextIndex
-                                } else {
+                                let remaining = unclaimedSourceIndices(
+                                    rewards: allRewards,
+                                    claimed: claimedRewardIds
+                                )
+                                if remaining.isEmpty {
                                     onDismiss()
+                                } else {
+                                    let nextPosition = min(visiblePosition, remaining.count - 1)
+                                    currentRewardIndex = remaining[nextPosition]
                                 }
                             }
                         } label: {
@@ -173,6 +179,12 @@ struct DelightGWRTemplate: View {
         .ignoresSafeArea(edges: .bottom)
         .sheet(item: $safariFallbackRoute) { route in
             SafariFallbackView(url: route.url)
+        }
+        .onAppear {
+            syncCurrentRewardIndexToVisibleRewards(allRewards: allRewards)
+        }
+        .onChange(of: claimedRewardIds) { _ in
+            syncCurrentRewardIndexToVisibleRewards(allRewards: allRewards)
         }
     }
 
@@ -293,20 +305,30 @@ struct DelightGWRTemplate: View {
         return "index-\(index)"
     }
 
-    private func nextUnclaimedIndex(
-        after index: Int,
+    private func unclaimedSourceIndices(
         rewards: [DelightPopupRewardDTO],
         claimed: Set<String>
-    ) -> Int? {
-        guard rewards.count > 1 else { return nil }
-        for offset in 1..<rewards.count {
-            let candidate = (index + offset) % rewards.count
-            let key = rewardClaimKey(rewards[candidate], index: candidate)
-            if !claimed.contains(key) {
-                return candidate
-            }
+    ) -> [Int] {
+        rewards.indices.filter { index in
+            let key = rewardClaimKey(rewards[index], index: index)
+            return !claimed.contains(key)
         }
-        return nil
+    }
+
+    private func resolvedSourceIndex(current: Int, visibleSourceIndices: [Int]) -> Int {
+        guard let first = visibleSourceIndices.first else { return 0 }
+        if visibleSourceIndices.contains(current) {
+            return current
+        }
+        return first
+    }
+
+    private func syncCurrentRewardIndexToVisibleRewards(allRewards: [DelightPopupRewardDTO]) {
+        let visible = unclaimedSourceIndices(rewards: allRewards, claimed: claimedRewardIds)
+        guard let first = visible.first else { return }
+        if !visible.contains(currentRewardIndex) {
+            currentRewardIndex = first
+        }
     }
 
     private func termsDisclaimer(_ termsHtml: String?) -> String? {
@@ -419,16 +441,20 @@ struct DelightGWRTemplate: View {
     }
 
     private func numberedSliderControls(
-        rewardCount: Int,
-        selectedIndex: Int,
+        visibleSourceIndices: [Int],
+        selectedSourceIndex: Int,
         activeColor: Color,
         inactiveColor: Color,
         arrowColor: Color
     ) -> some View {
-        HStack(spacing: 14) {
+        let rewardCount = visibleSourceIndices.count
+        let selectedIndex = visibleSourceIndices.firstIndex(of: selectedSourceIndex) ?? 0
+
+        return HStack(spacing: 14) {
             Button {
                 guard rewardCount > 0 else { return }
-                currentRewardIndex = (selectedIndex - 1 + rewardCount) % rewardCount
+                let next = (selectedIndex - 1 + rewardCount) % rewardCount
+                currentRewardIndex = visibleSourceIndices[next]
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .semibold))
@@ -439,26 +465,27 @@ struct DelightGWRTemplate: View {
             .accessibilityLabel("Previous reward")
 
             HStack(spacing: 10) {
-                ForEach(0..<rewardCount, id: \.self) { index in
+                ForEach(Array(visibleSourceIndices.enumerated()), id: \.offset) { position, sourceIndex in
                     Button {
-                        currentRewardIndex = index
+                        currentRewardIndex = sourceIndex
                     } label: {
-                        Text("\(index + 1)")
+                        Text("\(position + 1)")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(index == selectedIndex ? Color.white : Color.black.opacity(0.55))
+                            .foregroundColor(position == selectedIndex ? Color.white : Color.black.opacity(0.55))
                             .frame(width: 28, height: 28)
-                            .background(index == selectedIndex ? activeColor : inactiveColor)
+                            .background(position == selectedIndex ? activeColor : inactiveColor)
                             .clipShape(Circle())
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .accessibilityLabel("Go to reward \(index + 1)")
-                    .accessibilityAddTraits(index == selectedIndex ? .isSelected : [])
+                    .accessibilityLabel("Go to reward \(position + 1)")
+                    .accessibilityAddTraits(position == selectedIndex ? .isSelected : [])
                 }
             }
 
             Button {
                 guard rewardCount > 0 else { return }
-                currentRewardIndex = (selectedIndex + 1) % rewardCount
+                let next = (selectedIndex + 1) % rewardCount
+                currentRewardIndex = visibleSourceIndices[next]
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 16, weight: .semibold))
