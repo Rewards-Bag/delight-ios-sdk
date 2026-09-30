@@ -486,13 +486,13 @@ final class DelightSDKTests: XCTestCase {
         XCTAssertTrue(DelightTemplateRegistry.supports(templateId: config.templateId))
     }
 
-    func testStagecoachBrandResolvesHeroTemplateId() {
+    func testStagecoachBrandResolvesStagecoachTemplateId() {
         let config = makeConfig(
             hostDisplayName: "Stagecoach",
             brandName: "stagecoachbus-com",
             rewards: [makeReward(id: "rakuten", ticketType: "adult")]
         )
-        XCTAssertEqual(config.templateId, DelightTemplateID.modalCard)
+        XCTAssertEqual(config.templateId, DelightTemplateID.stagecoachModal)
     }
 
     func testRewardsWithoutTicketTypeAreAvailableToAllBaskets() {

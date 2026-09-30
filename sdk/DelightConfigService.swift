@@ -1,9 +1,17 @@
 import Foundation
 
 enum DelightConfigService {
+    /// Injected by unit tests to mock CDN responses.
+    static var testingURLSession: URLSession?
+
+    static func decodeConfig(from data: Data) throws -> DelightConfigDTO {
+        try JSONDecoder().decode(DelightConfigDTO.self, from: data)
+    }
+
     static func fetchConfig(
         brandName: String,
-        cdnBaseURL: URL
+        cdnBaseURL: URL,
+        session: URLSession? = nil
     ) async throws -> DelightConfigDTO {
         let normalizedBrand = brandName
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -16,15 +24,18 @@ enum DelightConfigService {
             let configuration = URLSessionConfiguration.ephemeral
             configuration.timeoutIntervalForRequest = 5
             configuration.timeoutIntervalForResource = 5
-            let session = URLSession(configuration: configuration)
+            let session = session ?? testingURLSession ?? URLSession(configuration: configuration)
             let (data, response) = try await session.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            guard (200...299).contains(httpResponse.statusCode) else {
                 throw URLError(.badServerResponse)
             }
 #if DEBUG
             print("Delight config source: CDN (\(endpoint.absoluteString)) status=\(httpResponse.statusCode)")
 #endif
-            return try JSONDecoder().decode(DelightConfigDTO.self, from: data)
+            return try decodeConfig(from: data)
         } catch {
 #if DEBUG
             print("Delight config CDN fetch failed for \(endpoint.absoluteString): \(error.localizedDescription)")
@@ -46,7 +57,7 @@ enum DelightConfigService {
                     ?? bundle.url(forResource: "config", withExtension: ext, subdirectory: "sdk")
                     ?? bundle.url(forResource: "sdk/config", withExtension: ext) {
                     let data = try Data(contentsOf: url)
-                    return try JSONDecoder().decode(DelightConfigDTO.self, from: data)
+                    return try decodeConfig(from: data)
                 }
             }
         }

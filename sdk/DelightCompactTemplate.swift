@@ -26,7 +26,7 @@ struct DelightCompactTemplate: View {
             Button(rewardLocale?.cta ?? popupLocale?.cta ?? "Continue") {
                 onPrimary(reward?.id)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PlainButtonStyle())
             .foregroundColor(.white)
             .frame(maxWidth: .infinity, minHeight: 44)
             .background(theme.primary)
@@ -35,7 +35,7 @@ struct DelightCompactTemplate: View {
             Button(popupLocale?.secondaryCta ?? "Dismiss") {
                 onDismiss()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PlainButtonStyle())
         }
         .padding(16)
         .background(theme.surface)

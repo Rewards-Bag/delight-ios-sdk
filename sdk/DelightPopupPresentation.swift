@@ -55,38 +55,70 @@ public struct DelightPopupView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
         case .ready(let config, let theme, _):
-            DelightTemplateRegistry.view(
-                for: config,
-                theme: theme,
-                closeButtonAction: controller.closeButtonAction(for: config),
-                onMinimize: {
-                    guard controller.shouldMinimizeOnCloseTap(for: config) else { return }
-                    controller.minimize()
-                },
-                onPrimary: { rewardId in
-                    controller.markRewardClicked(rewardId)
-                    controller.callbacks.onPrimaryClick?(rewardId)
-                    if !config.isGWRBrand {
-                        Self.dismiss()
+#if DEBUG
+            if DelightRuntimeTestFlags.suppressTemplateBody {
+                Color.clear
+                    .onAppear {
+                        controller.tearDownAfterRenderFailure()
                     }
-                },
-                onDismiss: {
-                    controller.markDismissedByCloseButton()
-                    Self.dismiss()
-                },
-                currentRewardIndex: $controller.carouselRewardIndex,
-                claimedRewardIds: $controller.claimedRewardIds
-            )
-            .onAppear {
-                controller.markRewardBecameVisible(at: controller.carouselRewardIndex, in: config)
+            } else {
+                popupTemplate(config: config, theme: theme)
             }
-            .onChange(of: controller.carouselRewardIndex) { index in
-                controller.markRewardBecameVisible(at: index, in: config)
-            }
+#else
+            popupTemplate(config: config, theme: theme)
+#endif
         case .failed:
             EmptyView()
         case .idle, .hidden:
             EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private func popupTemplate(config: DelightConfigDTO, theme: DelightPopupTheme) -> some View {
+        DelightTemplateRegistry.view(
+            for: config,
+            theme: theme,
+            closeButtonAction: controller.closeButtonAction(for: config),
+            onMinimize: {
+                guard controller.shouldMinimizeOnCloseTap(for: config) else { return }
+                controller.minimize()
+            },
+            onPrimary: { rewardId in
+                DelightFailSafe.run {
+                    controller.markRewardClicked(rewardId)
+                    DelightHostCallbacks.invokePrimaryClick(controller.callbacks.onPrimaryClick, rewardId: rewardId)
+                    if !config.isGWRBrand {
+                        controller.dismissSafely()
+                    }
+                } onFailure: { _ in
+                    controller.tearDownAfterRenderFailure()
+                }
+            },
+            onDismiss: {
+                DelightFailSafe.run {
+                    controller.markDismissedByCloseButton()
+                    controller.dismissSafely()
+                } onFailure: { _ in
+                    controller.tearDownAfterRenderFailure()
+                }
+            },
+            currentRewardIndex: $controller.carouselRewardIndex,
+            claimedRewardIds: $controller.claimedRewardIds
+        )
+        .onAppear {
+            DelightFailSafe.run {
+                controller.markRewardBecameVisible(at: controller.carouselRewardIndex, in: config)
+            } onFailure: { _ in
+                controller.tearDownAfterRenderFailure()
+            }
+        }
+        .onChange(of: controller.carouselRewardIndex) { index in
+            DelightFailSafe.run {
+                controller.markRewardBecameVisible(at: index, in: config)
+            } onFailure: { _ in
+                controller.tearDownAfterRenderFailure()
+            }
         }
     }
 }
@@ -259,7 +291,7 @@ private struct DelightMinimizedRewardBadge: View {
                     )
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlainButtonStyle())
         .accessibilityLabel("Open reward offer")
     }
 }
@@ -269,6 +301,7 @@ private struct DelightMinimizedBadgePulseRing: View {
     let delay: Double
 
     @State private var isPulsing = false
+    @State private var pulseTask: Task<Void, Never>?
 
     var body: some View {
         Circle()
@@ -280,11 +313,20 @@ private struct DelightMinimizedBadgePulseRing: View {
             .scaleEffect(isPulsing ? 1.42 : 1)
             .opacity(isPulsing ? 0 : 0.55)
             .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                pulseTask?.cancel()
+                pulseTask = Task { @MainActor in
+                    let delayNs = UInt64(max(delay, 0) * 1_000_000_000)
+                    try? await Task.sleep(nanoseconds: delayNs)
+                    guard !Task.isCancelled else { return }
                     withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
                         isPulsing = true
                     }
                 }
+            }
+            .onDisappear {
+                pulseTask?.cancel()
+                pulseTask = nil
+                isPulsing = false
             }
     }
 }

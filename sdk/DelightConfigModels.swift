@@ -216,7 +216,7 @@ struct DelightSliderArrowsThemeDTO: Decodable {
 }
 
 enum DelightTemplateID {
-    static let modalCard = "modal_card_v1"
+    static let stagecoachModal = "modal_card_v1"
     static let modalCompact = "modal_compact_v1"
     static let gwrModal = "gwr_modal_v1"
 }
@@ -226,7 +226,7 @@ extension DelightConfigDTO {
         if isGWRBrand {
             return DelightTemplateID.gwrModal
         }
-        return DelightTemplateID.modalCard
+        return DelightTemplateID.stagecoachModal
     }
 
     var isGWRBrand: Bool {

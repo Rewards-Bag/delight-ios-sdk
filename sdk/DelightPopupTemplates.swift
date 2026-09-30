@@ -2,7 +2,7 @@ import SwiftUI
 
 enum DelightTemplateRegistry {
     static let supportedTemplateIds: Set<String> = [
-        DelightTemplateID.modalCard,
+        DelightTemplateID.stagecoachModal,
         DelightTemplateID.modalCompact,
         DelightTemplateID.gwrModal
     ]
@@ -42,7 +42,7 @@ enum DelightTemplateRegistry {
                 claimedRewardIds: claimedRewardIds
             )
         default:
-            DelightHeroOfferTemplate(
+            DelightStagecoachTemplate(
                 config: config,
                 theme: theme,
                 closeButtonAction: closeButtonAction,

@@ -38,12 +38,47 @@ final class DelightPopupController: ObservableObject {
     private var didRecordIgnoreForCurrentPresentation = false
     private var didCommitVisibleImpression = false
     private var impressedRewardIdsThisPresentation = Set<String>()
-    private var initializationErrorMessage: String?
-    private var initializedBrandName: String?
+    private(set) var initializedBrandName: String?
+    private var presentationEpoch = 0
+    private var lifecycleCancellables = Set<AnyCancellable>()
+    private var didInstallApplicationLifecycleObservers = false
+    private var configLoadInProgress = false
+    private var configLoadTargetBrand: String?
+    private var configLoadToken = 0
 
-    private init() {}
+    private init() {
+        installApplicationLifecycleObserversIfNeeded()
+    }
+
+#if canImport(UIKit)
+    private func installApplicationLifecycleObserversIfNeeded() {
+        guard !didInstallApplicationLifecycleObservers else { return }
+        didInstallApplicationLifecycleObservers = true
+
+        NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.handleEnterBackgroundForLifecycle()
+            }
+            .store(in: &lifecycleCancellables)
+
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.handleEnterForegroundForLifecycle()
+            }
+            .store(in: &lifecycleCancellables)
+    }
+#else
+    private func installApplicationLifecycleObserversIfNeeded() {}
+#endif
 
     func show(payload: DelightRequestPayload, callbacks: DelightCallbacks) {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
+
+        presentationEpoch &+= 1
+        let epoch = presentationEpoch
+
         self.payload = payload
         self.callbacks = callbacks
         hideMinimizedBadgeOverlay()
@@ -51,16 +86,12 @@ final class DelightPopupController: ObservableObject {
         isMinimized = false
         closeButtonShowsDismiss = false
         guard consentGranted else {
-            handleNonDisplayableError("Consent not granted. Popup display is disabled.")
-            return
-        }
-        if let initializationErrorMessage {
-            handleNonDisplayableError(initializationErrorMessage)
+            abandonPresentationSilently()
             return
         }
         self.state = .loading
         resetPresentationTracking()
-        Task { await fetchConfigAndBuildPopup() }
+        Task { await self.fetchConfigAndBuildPopup(expectedEpoch: epoch) }
     }
 
     func show() {
@@ -71,7 +102,17 @@ final class DelightPopupController: ObservableObject {
         state = .idle
     }
 
-    func dismiss() {
+    func dismissSafely() {
+        presentationEpoch &+= 1
+        DelightFailSafe.run {
+            performDismiss()
+        } onFailure: { error in
+            DelightFailSafeLog.sdkError("Dismiss failed: \(error.localizedDescription)")
+            self.abandonPresentationSilently()
+        }
+    }
+
+    private func performDismiss() {
         recordIgnoreIfNoClick()
         hidePopupOverlay()
         hideMinimizedBadgeOverlay()
@@ -79,8 +120,31 @@ final class DelightPopupController: ObservableObject {
         closeButtonShowsDismiss = false
         isPresented = false
         state = .hidden
-        callbacks.onDismiss?()
+        DelightPopupSessionStore.clear()
+        let dismissCallback = callbacks.onDismiss
         resetPresentationTracking()
+        DelightHostCallbacks.invokeDismiss(dismissCallback)
+    }
+
+    func dismiss() {
+        dismissSafely()
+    }
+
+    func abandonPresentationSilently() {
+        presentationEpoch &+= 1
+        hidePopupOverlay()
+        hideMinimizedBadgeOverlay()
+        isMinimized = false
+        closeButtonShowsDismiss = false
+        isPresented = false
+        state = .hidden
+        DelightPopupSessionStore.clear()
+        resetPresentationTracking()
+    }
+
+    func tearDownAfterRenderFailure() {
+        DelightFailSafeLog.sdkError("Render path failed; tearing down popup")
+        abandonPresentationSilently()
     }
 
     /// Collapses the popup to a floating present icon without recording an ignore.
@@ -90,6 +154,7 @@ final class DelightPopupController: ObservableObject {
         isMinimized = true
         isPresented = false
         showMinimizedBadgeOverlay()
+        persistSessionSnapshot()
     }
 
     /// Reopens the reward popup from the minimized present icon (close button becomes X).
@@ -100,6 +165,7 @@ final class DelightPopupController: ObservableObject {
         isMinimized = false
         isPresented = true
         showPopupOverlay()
+        persistSessionSnapshot()
     }
 
     func markRewardBecameVisible(at index: Int, in config: DelightConfigDTO) {
@@ -117,7 +183,7 @@ final class DelightPopupController: ObservableObject {
         currentRewardId = rewardId
         commitVisibleImpressionIfNeeded(at: Date())
         triggerBackendImpressionTracking(rewardId: rewardId)
-        callbacks.onImpression?(rewardId)
+        DelightHostCallbacks.invokeImpression(callbacks.onImpression, rewardId: rewardId)
     }
 
     func markDismissedByCloseButton() {
@@ -132,16 +198,138 @@ final class DelightPopupController: ObservableObject {
         triggerBackendRewardClaimTracking(rewardId: rewardId)
     }
 
-    func reportInitializationError(_ message: String) {
-        initializationErrorMessage = message
-    }
+    func clearInitializationError() {}
 
-    func clearInitializationError() {
-        initializationErrorMessage = nil
-    }
-
-    func setInitializedBrandName(_ value: String) {
+    func setInitializedBrandName(_ value: String?) {
         initializedBrandName = value
+    }
+
+    func beginConfigLoad(for brandName: String) -> Int {
+        configLoadInProgress = true
+        configLoadTargetBrand = brandName
+        return configLoadToken
+    }
+
+    func endConfigLoad() {
+        configLoadInProgress = false
+        configLoadTargetBrand = nil
+    }
+
+    func shouldApplyConfigLoad(token: Int) -> Bool {
+        token == configLoadToken
+    }
+
+    func prepareForBrandSwitch() {
+        configLoadToken &+= 1
+        endConfigLoad()
+        dismissSafely()
+        config = nil
+        clearInitializationError()
+        initializedBrandName = nil
+        DelightPopupSessionStore.clear()
+    }
+
+    func resetForTesting() {
+        abandonPresentationSilently()
+        config = nil
+        payload = nil
+        callbacks = .init()
+        initializedBrandName = nil
+        DelightPopupSessionStore.clear()
+        state = .idle
+        presentationEpoch = 0
+        configLoadToken = 0
+        endConfigLoad()
+    }
+
+    func persistSessionSnapshot() {
+        guard
+            let payload,
+            let orderId = payload.orderId?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !orderId.isEmpty,
+            let brandName = initializedBrandName,
+            !brandName.isEmpty
+        else {
+            DelightPopupSessionStore.clear()
+            return
+        }
+
+        guard case .ready(let config, _, _) = state else {
+            if isMinimized {
+                DelightPopupSessionStore.save(
+                    DelightPopupSessionStore.Snapshot(
+                        orderId: orderId,
+                        brandName: brandName,
+                        carouselRewardIndex: carouselRewardIndex,
+                        claimedRewardIds: Array(claimedRewardIds),
+                        isMinimized: true,
+                        impressedRewardIds: Array(impressedRewardIdsThisPresentation)
+                    )
+                )
+            }
+            return
+        }
+
+        DelightPopupSessionStore.save(
+            DelightPopupSessionStore.Snapshot(
+                orderId: orderId,
+                brandName: brandName,
+                carouselRewardIndex: carouselRewardIndex,
+                claimedRewardIds: Array(claimedRewardIds),
+                isMinimized: isMinimized,
+                impressedRewardIds: Array(impressedRewardIdsThisPresentation)
+            )
+        )
+        _ = config
+    }
+
+    @discardableResult
+    func restoreSessionSnapshotIfMatching(orderId: String?, brandName: String?) -> Bool {
+        guard
+            let snapshot = DelightPopupSessionStore.load(),
+            let orderId = orderId?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !orderId.isEmpty,
+            orderId == snapshot.orderId,
+            brandName == snapshot.brandName
+        else {
+            return false
+        }
+
+        carouselRewardIndex = snapshot.carouselRewardIndex
+        claimedRewardIds = Set(snapshot.claimedRewardIds)
+        impressedRewardIdsThisPresentation = Set(snapshot.impressedRewardIds)
+        isMinimized = snapshot.isMinimized
+        closeButtonShowsDismiss = snapshot.isMinimized || !(config?.isPresentIconEnabled ?? true)
+        return true
+    }
+
+    func handleEnterBackgroundForLifecycle() {
+        persistSessionSnapshot()
+    }
+
+    func handleEnterForegroundForLifecycle() {
+        guard case .ready = state else { return }
+        if isMinimized {
+            showMinimizedBadgeOverlay()
+        } else if isPresented {
+            showPopupOverlay()
+        }
+    }
+
+    func handleInterfaceRotationForLifecycle() {
+        guard case .ready = state else { return }
+        persistSessionSnapshot()
+        if isPresented {
+            showPopupOverlay()
+        } else if isMinimized {
+            showMinimizedBadgeOverlay()
+        }
+    }
+
+    func buildPopupFromCurrentConfig() async {
+        presentationEpoch &+= 1
+        let epoch = presentationEpoch
+        await fetchConfigAndBuildPopup(expectedEpoch: epoch)
     }
 
     func isConfigLoaded(for brandName: String) -> Bool {
@@ -156,38 +344,51 @@ final class DelightPopupController: ObservableObject {
         }
     }
 
-    private func fetchConfigAndBuildPopup() async {
-        guard payload != nil else {
-            handleNonDisplayableError("Missing payload")
+    private func fetchConfigAndBuildPopup(expectedEpoch: Int) async {
+        guard expectedEpoch == presentationEpoch else { return }
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else {
+            abandonPresentationSilently()
             return
         }
 
-        let resolvedConfig: DelightConfigDTO
-        if let config {
-            resolvedConfig = config
-        } else {
-            do {
-                let bundledConfig = try DelightConfigService.loadBundledConfig()
-                self.config = bundledConfig
-                resolvedConfig = bundledConfig
-            } catch {
-                handleNonDisplayableError("SDK not initialized and bundled config is unavailable.")
-                return
-            }
+        await DelightFailSafe.runAsync {
+            try await self.buildPopupIfStillCurrent(expectedEpoch: expectedEpoch)
+        } onFailure: { error in
+            DelightFailSafeLog.sdkError("Popup build failed: \(error.localizedDescription)")
+            self.abandonPresentationSilently()
         }
+    }
 
-        guard let popup = resolvedConfig.popup, popup.enabled == true else {
-            handleNonDisplayableError("Popup config missing or disabled")
-            return
-        }
-
-        guard DelightTemplateRegistry.supports(templateId: resolvedConfig.templateId) else {
-            handleNonDisplayableError("Unsupported template: \(resolvedConfig.templateId)")
-            return
-        }
-
+    private func buildPopupIfStillCurrent(expectedEpoch: Int) async throws {
+        guard expectedEpoch == presentationEpoch else { return }
         guard let payload else {
-            handleNonDisplayableError("Missing payload")
+            abandonPresentationSilently()
+            return
+        }
+
+        guard let resolvedConfig = config else {
+            if configLoadInProgress {
+                DelightFailSafeLog.debug("Popup show skipped: config load in progress")
+            } else {
+                DelightFailSafeLog.debug("Popup show skipped: SDK not initialized for a brand")
+            }
+            abandonPresentationSilently()
+            return
+        }
+
+        if configLoadInProgress {
+            abandonPresentationSilently()
+            return
+        }
+
+        guard expectedEpoch == presentationEpoch else { return }
+
+        switch DelightConfigValidator.validateForPresentation(resolvedConfig) {
+        case .success:
+            break
+        case .failure(let reason):
+            DelightFailSafeLog.debug("Config not presentable: \(reason)")
+            abandonPresentationSilently()
             return
         }
 
@@ -195,13 +396,19 @@ final class DelightPopupController: ObservableObject {
             from: resolvedConfig,
             payload: payload
         ) else {
-            callbacks.onError?("No eligible rewards available for current context.")
-            hidePopupOverlay()
-            isPresented = false
-            state = .hidden
-            resetPresentationTracking()
+            abandonPresentationSilently()
             return
         }
+
+        switch DelightConfigValidator.validateForPresentation(selectedConfig) {
+        case .success:
+            break
+        case .failure:
+            abandonPresentationSilently()
+            return
+        }
+
+        guard expectedEpoch == presentationEpoch else { return }
 
         let selectedRewardId = selectedConfig.popup?.rewards?.first?.id
         let theme = DelightPopupTheme.fromBrandTheme(selectedConfig.popup?.theme)
@@ -211,7 +418,19 @@ final class DelightPopupController: ObservableObject {
         closeButtonShowsDismiss = !selectedConfig.isPresentIconEnabled
         isMinimized = false
         isPresented = true
+
+        if restoreSessionSnapshotIfMatching(
+            orderId: payload.orderId,
+            brandName: initializedBrandName
+        ), isMinimized {
+            isPresented = false
+            showMinimizedBadgeOverlay()
+            persistSessionSnapshot()
+            return
+        }
+
         showPopupOverlay()
+        persistSessionSnapshot()
     }
 
     func closeButtonAction(for config: DelightConfigDTO) -> DelightPopupCloseButtonAction {
@@ -264,18 +483,6 @@ final class DelightPopupController: ObservableObject {
         impressedRewardIdsThisPresentation = []
         carouselRewardIndex = 0
         claimedRewardIds = []
-    }
-
-    private func handleNonDisplayableError(_ message: String) {
-        logError(message)
-        callbacks.onError?(message)
-        hidePopupOverlay()
-        hideMinimizedBadgeOverlay()
-        isMinimized = false
-        closeButtonShowsDismiss = false
-        isPresented = false
-        state = .hidden
-        resetPresentationTracking()
     }
 
     private func showPopupOverlay() {
@@ -333,19 +540,17 @@ final class DelightPopupController: ObservableObject {
             impressionCount: 1
         )
 
+        let apiUrl = config.apiUrl
         Task.detached {
             do {
                 try await DelightTrackingService.trackRewardImpression(
                     request: request,
-                    apiBaseURLString: config.apiUrl,
+                    apiBaseURLString: apiUrl,
                     partnerIdHeader: partnerId
                 )
             } catch {
                 let message = "Failed to track reward impression: \(error.localizedDescription)"
-                await MainActor.run {
-                    self.logError(message)
-                    self.callbacks.onError?(message)
-                }
+                DelightFailSafeLog.debug(message)
             }
         }
     }
@@ -375,20 +580,19 @@ final class DelightPopupController: ObservableObject {
             orderId: orderId
         )
 
-        Task.detached {
+        let apiUrl = config.apiUrl
+        Task { [weak self] in
+            guard let self else { return }
             await self.runWithBackgroundExecution {
                 do {
                     try await DelightTrackingService.trackRewardClaim(
                         request: request,
-                        apiBaseURLString: config.apiUrl,
+                        apiBaseURLString: apiUrl,
                         partnerIdHeader: partnerId
                     )
                 } catch {
                     let message = "Failed to track reward claim: \(error.localizedDescription)"
-                    await MainActor.run {
-                        self.logError(message)
-                        self.callbacks.onError?(message)
-                    }
+                    DelightFailSafeLog.debug(message)
                 }
             }
         }
@@ -400,12 +604,6 @@ final class DelightPopupController: ObservableObject {
             .replacingOccurrences(of: " ", with: "-")
         let timestampMs = Int(Date().timeIntervalSince1970 * 1000)
         return "\(brandPrefix)-\(timestampMs)"
-    }
-
-    private func logError(_ message: String) {
-#if DEBUG
-        print("Delight SDK Error:", message)
-#endif
     }
 
     private func runWithBackgroundExecution(
