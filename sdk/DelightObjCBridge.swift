@@ -12,16 +12,12 @@ public final class DelightObjC: NSObject {
         completion: ((NSError?) -> Void)?
     ) {
         Task { @MainActor in
-            do {
-                try await Delight.initialize(
-                    brandName: brandName,
-                    locale: locale,
-                    ignoreDailyCooldownHours: ignoreDailyCooldownHours
-                )
-                completion?(nil)
-            } catch {
-                completion?(error as NSError)
-            }
+            await Delight.initialize(
+                brandName: brandName,
+                locale: locale,
+                ignoreDailyCooldownHours: ignoreDailyCooldownHours
+            )
+            completion?(nil)
         }
     }
 

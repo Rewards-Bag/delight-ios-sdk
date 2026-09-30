@@ -3,6 +3,8 @@ import Foundation
 @MainActor
 public enum Delight {
     private static let sdkUserTokenDefaultsKey = "delight.sdk.local-user-token"
+    private static let defaultCDNBaseURL = URL(string: "https://cdn.rewardsbag.com")
+        ?? URL(fileURLWithPath: "/")
 
     /// - Parameters:
     ///   - useBundledConfig: When `true`, loads `config.json` from the app bundle (e.g. `sdk/config.json` copied into the target) and skips the CDN. Use for local testing.
@@ -10,20 +12,33 @@ public enum Delight {
     public static func initialize(
         brandName: String,
         locale: String = "en",
-        cdnBaseURL: URL = URL(string: "https://cdn.rewardsbag.com")!,
+        cdnBaseURL: URL? = nil,
         useBundledConfig: Bool = false,
         ignoreDailyCooldownHours: Bool = false,
         consentGranted: Bool = true
-    ) async throws {
+    ) async {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
+
         DelightRewardSelectionService.ignoreDailyCooldownHours = ignoreDailyCooldownHours
         let controller = DelightPopupController.shared
         controller.setConsent(granted: consentGranted)
         if consentGranted {
             _ = localSDKUserToken()
         }
+
+        if let loadedBrand = controller.initializedBrandName, loadedBrand != brandName {
+            controller.prepareForBrandSwitch()
+        }
+
         if controller.isConfigLoaded(for: brandName) {
             return
         }
+
+        let configLoadToken = controller.beginConfigLoad(for: brandName)
+        defer { controller.endConfigLoad() }
+
+        let resolvedCDN = cdnBaseURL ?? defaultCDNBaseURL
+
         do {
             let config: DelightConfigDTO
             if useBundledConfig {
@@ -31,27 +46,39 @@ public enum Delight {
             } else {
                 config = try await DelightConfigService.fetchConfig(
                     brandName: brandName,
-                    cdnBaseURL: cdnBaseURL
+                    cdnBaseURL: resolvedCDN
                 )
             }
-            DelightPopupController.shared.config = configWithResolvedLocale(
+            guard controller.shouldApplyConfigLoad(token: configLoadToken) else {
+                return
+            }
+            let resolved = configWithResolvedLocale(
                 config,
                 explicitLocale: locale,
                 brandName: brandName
             )
+            switch DelightConfigValidator.validateForPresentation(resolved) {
+            case .success:
+                controller.config = resolved
+            case .failure:
+                controller.config = safeEmptyConfig(brandName: brandName)
+            }
             controller.setInitializedBrandName(brandName)
             controller.clearInitializationError()
         } catch {
-            // Crash isolation: never throw initialization failures into host apps.
-            let message = "Failed to initialize Delight SDK config: \(error.localizedDescription)"
-            logError(message)
-            controller.config = safeEmptyConfig(brandName: brandName)
-            controller.setInitializedBrandName(brandName)
-            controller.reportInitializationError(message)
+            guard controller.shouldApplyConfigLoad(token: configLoadToken) else {
+                return
+            }
+            DelightSessionGuard.disableAfterInitializationFailure(error.localizedDescription)
+            controller.config = nil
+            controller.setInitializedBrandName(nil)
+            controller.clearInitializationError()
+            controller.abandonPresentationSilently()
         }
     }
 
     public static func setConsent(granted: Bool) {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
         DelightPopupController.shared.setConsent(granted: granted)
         if granted {
             return
@@ -60,6 +87,7 @@ public enum Delight {
     }
 
     public static func clearLocalData() {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
         UserDefaults.standard.removeObject(forKey: sdkUserTokenDefaultsKey)
         DelightRewardSelectionService.clearLocalData()
     }
@@ -68,6 +96,7 @@ public enum Delight {
     /// Use for QA to re-test first/second daily rewards without waiting until midnight.
     /// Fatigue, click suppression, and monthly impression history are preserved.
     public static func resetDailySuppressionState() {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
         DelightRewardSelectionService.resetDailySuppressionState()
     }
 
@@ -75,6 +104,7 @@ public enum Delight {
         _ payload: DelightRequestPayload,
         callbacks: DelightCallbacks = .init()
     ) {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
         DelightPopupController.shared.show(
             payload: payloadWithResolvedUserToken(payload),
             callbacks: callbacks
@@ -90,7 +120,54 @@ public enum Delight {
     }
 
     public static func dismiss() {
-        DelightPopupController.shared.dismiss()
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
+        DelightPopupController.shared.dismissSafely()
+    }
+
+    @available(*, deprecated, message: "Not required; the SDK observes UIApplication background/foreground automatically.")
+    public static func handleApplicationDidEnterBackground() {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
+        DelightPopupController.shared.handleEnterBackgroundForLifecycle()
+    }
+
+    @available(*, deprecated, message: "Not required; the SDK observes UIApplication background/foreground automatically.")
+    public static func handleApplicationWillEnterForeground() {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
+        DelightPopupController.shared.handleEnterForegroundForLifecycle()
+    }
+
+    /// Optional: forward rotation if overlays misalign on a specific host; most apps can omit this.
+    public static func handleInterfaceOrientationChange() {
+        guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
+        DelightPopupController.shared.handleInterfaceRotationForLifecycle()
+    }
+
+    /// Resets SDK popup state for unit tests (does not clear suppression history). Not for host apps.
+    public static func resetPopupControllerForTesting() {
+        DelightSessionGuard.resetForTesting()
+        DelightPopupController.shared.resetForTesting()
+    }
+
+    /// Loads config directly for unit tests (skips CDN).
+    static func loadConfigForTesting(
+        brandName: String,
+        locale: String = "en",
+        config: DelightConfigDTO
+    ) {
+        DelightSessionGuard.resetForTesting()
+        let controller = DelightPopupController.shared
+        controller.config = DelightConfigDTO(
+            partnerId: config.partnerId,
+            partnerLogo: config.partnerLogo,
+            hostDisplayName: config.hostDisplayName,
+            apiUrl: config.apiUrl,
+            language: locale,
+            popup: config.popup,
+            suppressionRules: config.suppressionRules,
+            brandName: brandName
+        )
+        controller.setInitializedBrandName(brandName)
+        controller.clearInitializationError()
     }
 
     private static func payloadWithResolvedUserToken(_ payload: DelightRequestPayload) -> DelightRequestPayload {
@@ -105,7 +182,12 @@ public enum Delight {
             )
         }
         let existingToken = payload.userToken?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedToken = (existingToken?.isEmpty == false) ? existingToken! : localSDKUserToken()
+        let resolvedToken: String
+        if let existingToken, !existingToken.isEmpty {
+            resolvedToken = existingToken
+        } else {
+            resolvedToken = localSDKUserToken()
+        }
         return DelightRequestPayload(
             orderId: payload.orderId,
             email: payload.email,
@@ -175,12 +257,6 @@ public enum Delight {
             return String(primary)
         }
         return lowered
-    }
-
-    private static func logError(_ message: String) {
-#if DEBUG
-        print("Delight SDK Error:", message)
-#endif
     }
 
 }

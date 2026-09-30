@@ -3,7 +3,7 @@ import UIKit
 import SafariServices
 import WebKit
 
-struct DelightHeroOfferTemplate: View {
+struct DelightStagecoachTemplate: View {
     let config: DelightConfigDTO
     let theme: DelightPopupTheme
     var closeButtonAction: DelightPopupCloseButtonAction = .minimize
@@ -218,7 +218,7 @@ struct DelightHeroOfferTemplate: View {
                                         .background(theme.primary)
                                         .clipShape(Capsule())
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(PlainButtonStyle())
                                 .shadow(color: Color.black.opacity(0.12), radius: 8, y: 4)
                             }
                             .padding(.horizontal, finePrintRelativeHorizontalInset)
@@ -459,7 +459,7 @@ struct DelightHeroOfferTemplate: View {
             Text(title)
                 .underline()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlainButtonStyle())
         .disabled(resolvedCTAUrl(from: rawUrl) == nil)
         .opacity(resolvedCTAUrl(from: rawUrl) == nil ? 0.6 : 1)
     }

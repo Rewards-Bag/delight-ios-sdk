@@ -45,7 +45,7 @@ import DelightSDK
 Call once on app startup (for example in `.task`, app launch, or bootstrap flow). `brandName` is the partner identifier RewardsBag provides; the SDK loads `https://cdn.rewardsbag.com/configs/{brandName}.json`.
 
 ```swift
-try await Delight.initialize(
+await Delight.initialize(
     brandName: "YOUR_BRAND_NAME",
     locale: "en",
     consentGranted: true
@@ -85,8 +85,8 @@ Delight.showRewardPopup(
         onDismiss: {
             print("Popup dismissed")
         },
-        onError: { message in
-            print("Error:", message)
+        onError: { _ in
+            // Reserved; the SDK does not surface internal failures to the host.
         }
     )
 )
@@ -208,6 +208,19 @@ An impression fires the first time a reward becomes visible in the current prese
 | `userToken` | No | The SDK generates and persists one when omitted |
 | `firstName` / `lastName` | No | |
 | `ticketTypes` | No | Context labels used to match rewards. `nil` / empty only matches rewards with no ticket type. Non-empty values build an ordered pool from those types |
+
+## Fail-safe guarantees
+
+The SDK is designed so a bad CDN deploy or internal bug never breaks the host app:
+
+- **Config** fetch failure, timeout, malformed JSON, or no presentable rewards → no UI, no thrown errors, no host callbacks.
+- **Init exception** (e.g. CDN 404 / decode error) → `DelightSessionGuard` disables the SDK for the process; all public APIs become no-ops until the app restarts.
+- **Render / dismiss errors** → popup is torn down silently (`abandonPresentationSilently` / `tearDownAfterRenderFailure`); no broken overlay.
+- **Tracking failures** → logged in DEBUG only; never passed to `onError`.
+- **Deferred UI work** uses a presentation epoch so async build steps cannot update UI after dismiss; badge pulse uses a cancellable `Task` instead of `asyncAfter`.
+- **Pre-render validation** (`DelightConfigValidator`) requires enabled popup, supported template, and each visible reward to have a non-empty id plus headline or HTTPS image URL (and valid optional URLs).
+
+Host callbacks (`onImpression`, `onPrimaryClick`, `onDismiss`) are invoked inside `DelightHostCallbacks` so partner code cannot crash the app.
 
 ## QA / Local Testing
 
