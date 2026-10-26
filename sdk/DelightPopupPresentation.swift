@@ -103,6 +103,13 @@ public struct DelightPopupView: View {
                     controller.tearDownAfterRenderFailure()
                 }
             },
+            onRewardsExhausted: {
+                DelightFailSafe.run {
+                    controller.completeAllRewards()
+                } onFailure: { _ in
+                    controller.tearDownAfterRenderFailure()
+                }
+            },
             currentRewardIndex: $controller.carouselRewardIndex,
             claimedRewardIds: $controller.claimedRewardIds
         )

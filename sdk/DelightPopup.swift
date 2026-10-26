@@ -90,6 +90,7 @@ public enum Delight {
         guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
         UserDefaults.standard.removeObject(forKey: sdkUserTokenDefaultsKey)
         DelightRewardSelectionService.clearLocalData()
+        DelightPopupSessionStore.clearExhaustedRewards()
     }
 
     /// Clears today's daily reward slots for all users, mimicking a GMT midnight rollover.

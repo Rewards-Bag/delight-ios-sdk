@@ -85,6 +85,14 @@ final class DelightPopupController: ObservableObject {
         hidePopupOverlay()
         isMinimized = false
         closeButtonShowsDismiss = false
+        if DelightPopupSessionStore.areRewardsExhausted(
+            orderId: payload.orderId,
+            brandName: initializedBrandName
+        ) {
+            isPresented = false
+            state = .hidden
+            return
+        }
         guard consentGranted else {
             abandonPresentationSilently()
             return
@@ -145,6 +153,24 @@ final class DelightPopupController: ObservableObject {
     func tearDownAfterRenderFailure() {
         DelightFailSafeLog.sdkError("Render path failed; tearing down popup")
         abandonPresentationSilently()
+    }
+
+    /// Claim or No thanks has been used on every reward. Hide the popup and the present icon.
+    func completeAllRewards() {
+        DelightPopupSessionStore.markRewardsExhausted(
+            orderId: payload?.orderId ?? "",
+            brandName: initializedBrandName ?? ""
+        )
+        hidePopupOverlay()
+        hideMinimizedBadgeOverlay()
+        isMinimized = false
+        closeButtonShowsDismiss = false
+        isPresented = false
+        state = .hidden
+        DelightPopupSessionStore.clear()
+        let dismissCallback = callbacks.onDismiss
+        resetPresentationTracking()
+        DelightHostCallbacks.invokeDismiss(dismissCallback)
     }
 
     /// Collapses the popup to a floating present icon without recording an ignore.
@@ -363,6 +389,18 @@ final class DelightPopupController: ObservableObject {
         guard expectedEpoch == presentationEpoch else { return }
         guard let payload else {
             abandonPresentationSilently()
+            return
+        }
+
+        if DelightPopupSessionStore.areRewardsExhausted(
+            orderId: payload.orderId,
+            brandName: initializedBrandName
+        ) {
+            hidePopupOverlay()
+            hideMinimizedBadgeOverlay()
+            isMinimized = false
+            isPresented = false
+            state = .hidden
             return
         }
 

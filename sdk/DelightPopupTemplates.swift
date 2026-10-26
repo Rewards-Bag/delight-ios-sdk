@@ -19,6 +19,7 @@ enum DelightTemplateRegistry {
         onMinimize: @escaping () -> Void = {},
         onPrimary: @escaping (String?) -> Void,
         onDismiss: @escaping () -> Void,
+        onRewardsExhausted: @escaping () -> Void = {},
         currentRewardIndex: Binding<Int> = .constant(0),
         claimedRewardIds: Binding<Set<String>> = .constant([])
     ) -> some View {
@@ -38,6 +39,7 @@ enum DelightTemplateRegistry {
                 onMinimize: onMinimize,
                 onPrimary: onPrimary,
                 onDismiss: onDismiss,
+                onRewardsExhausted: onRewardsExhausted,
                 currentRewardIndex: currentRewardIndex,
                 claimedRewardIds: claimedRewardIds
             )
