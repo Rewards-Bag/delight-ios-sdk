@@ -122,7 +122,7 @@ struct DelightGWRTemplate: View {
                                 )
                             } label: {
                                 Text(secondaryCtaLabel(popupLocale))
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.system(size: 15, weight: .regular))
                                     .foregroundColor(.black)
                                     .lineLimit(2)
                                     .minimumScaleFactor(0.8)
