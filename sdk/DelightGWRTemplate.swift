@@ -10,6 +10,7 @@ struct DelightGWRTemplate: View {
     let onMinimize: () -> Void
     let onPrimary: (String?) -> Void
     let onDismiss: () -> Void
+    var onRewardsExhausted: () -> Void = {}
     @Binding var currentRewardIndex: Int
     @Binding var claimedRewardIds: Set<String>
     @Environment(\.openURL) private var openURL
@@ -27,29 +28,17 @@ struct DelightGWRTemplate: View {
         let popupLocale = config.resolvedPopupLocale
         let orderLineFontSize = CGFloat(config.orderLineFontSize)
         let headlineFontSize = CGFloat(config.headlineFontSize)
-        let headlineWeight = fontWeight(from: config.headlineFontWeight, fallback: .heavy)
-        let headlineColor = colorFromHex(config.headlineColorHex, fallback: .black)
         let headlineLineSpacing = lineSpacing(fontSize: headlineFontSize, lineHeight: config.headlineLineHeight)
         let descriptionFontSize = CGFloat(config.descriptionFontSize)
-        let descriptionWeight = fontWeight(from: config.descriptionFontWeight, fallback: .semibold)
-        let descriptionColor = colorFromHex(config.descriptionColorHex, fallback: Color.black.opacity(0.85))
         let descriptionLineSpacing = lineSpacing(fontSize: descriptionFontSize, lineHeight: config.descriptionLineHeight)
         let ctaButtonFontSize = CGFloat(config.ctaButtonFontSize)
-        let ctaButtonWeight = fontWeight(from: config.ctaButtonFontWeight, fallback: .heavy)
         let ctaButtonLineSpacing = lineSpacing(fontSize: ctaButtonFontSize, lineHeight: config.ctaButtonLineHeight)
-        let ctaButtonMinHeight = CGFloat(config.ctaButtonMinHeight)
-        let ctaButtonCornerRadius = CGFloat(config.ctaButtonCornerRadius)
         let footerLinksLineSpacing = lineSpacing(fontSize: 11, lineHeight: config.footerLinksLineHeight)
-        let closeButtonSize = min(CGFloat(config.closeButtonSize), 28)
-        let closeButtonIconSize = min(CGFloat(config.closeButtonIconSize), 14)
+        let closeButtonSize = min(CGFloat(config.closeButtonSize), 36)
+        let closeButtonIconSize = min(CGFloat(config.closeButtonIconSize), 16)
         let closeButtonCornerRadius = CGFloat(config.closeButtonCornerRadius)
-        let closeButtonBG = colorFromCss(config.closeButtonBackgroundColorHex, fallback: .white)
-        let closeButtonIconColor = colorFromCss(config.closeButtonIconColorHex, fallback: Color.black.opacity(0.7))
-        let sliderDotActive = colorFromCss(config.sliderDotActiveColorHex, fallback: theme.primary)
-        let sliderDotInactive = colorFromCss(config.sliderDotInactiveColorHex, fallback: Color(white: 0.82))
-        let sliderArrowIcon = colorFromCss(config.sliderArrowIconColorHex, fallback: theme.primary)
         let widgetImageObjectFit = config.widgetImageObjectFit
-        let heroBannerHeight: CGFloat = min(200, max(160, CGFloat(config.widgetImageHeight)))
+        let heroBannerHeight: CGFloat = 168
 
         ZStack {
             theme.overlay
@@ -58,121 +47,119 @@ struct DelightGWRTemplate: View {
 
             VStack(spacing: 0) {
                 headerBar(
-                    orderLine: popupLocale?.orderLine,
+                    orderLine: headerLine(rewardLocale: rewardLocale, popupLocale: popupLocale),
                     fontSize: orderLineFontSize,
-                    closeButtonSize: closeButtonSize,
+                    closeButtonSize: min(28, closeButtonSize),
                     closeButtonIconSize: closeButtonIconSize,
-                    closeButtonCornerRadius: closeButtonCornerRadius,
-                    closeButtonBG: closeButtonBG,
-                    closeButtonIconColor: closeButtonIconColor
+                    closeButtonCornerRadius: max(8, closeButtonCornerRadius)
                 )
 
-                VStack(spacing: 12) {
-                    heroBanner(
-                        reward: reward,
-                        height: heroBannerHeight,
-                        objectFit: widgetImageObjectFit
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
+                heroBanner(
+                    reward: reward,
+                    height: heroBannerHeight,
+                    objectFit: widgetImageObjectFit
+                )
 
-                    if config.showSlider, visibleSourceIndices.count > 1 {
-                        numberedSliderControls(
-                            visibleSourceIndices: visibleSourceIndices,
-                            selectedSourceIndex: sourceIndex,
-                            activeColor: sliderDotActive,
-                            inactiveColor: sliderDotInactive,
-                            arrowColor: sliderArrowIcon
-                        )
-                        .padding(.top, 2)
-                    }
-
+                VStack(spacing: 10) {
                     if config.showHeadline {
                         Text(rewardLocale?.headline ?? "Thanks for your order")
-                            .font(.system(size: min(headlineFontSize, 26), weight: headlineWeight))
+                            .font(.system(size: min(max(headlineFontSize, 18), 20), weight: .bold))
                             .multilineTextAlignment(.center)
-                            .foregroundColor(headlineColor)
+                            .foregroundColor(.black)
                             .lineSpacing(headlineLineSpacing)
                             .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
                     }
 
                     if config.showDescription,
-                       let description = rewardLocale?.description?.htmlToPlainText(),
+                       let description = firstDescriptionParagraph(rewardLocale?.description),
                        !description.isEmpty {
                         Text(description)
-                            .font(.system(size: descriptionFontSize, weight: descriptionWeight))
+                            .font(.system(size: min(descriptionFontSize, 14), weight: .regular))
                             .multilineTextAlignment(.center)
-                            .foregroundColor(descriptionColor)
+                            .foregroundColor(Color(red: 0.22, green: 0.24, blue: 0.27))
                             .lineSpacing(descriptionLineSpacing)
                             .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, 20)
                     }
 
                     if config.showCTAButton {
-                        Button {
-                            let claimedSourceIndex = sourceIndex
-                            let claimKey = rewardClaimKey(reward, index: claimedSourceIndex)
-                            let visiblePosition = visibleSourceIndices.firstIndex(of: claimedSourceIndex) ?? 0
-                            openCTAUrl(reward?.ctaUrl) {
-                                claimedRewardIds.insert(claimKey)
-                                onPrimary(reward?.id)
-                                let remaining = unclaimedSourceIndices(
-                                    rewards: allRewards,
-                                    claimed: claimedRewardIds
-                                )
-                                if remaining.isEmpty {
-                                    onDismiss()
-                                } else {
-                                    let nextPosition = min(visiblePosition, remaining.count - 1)
-                                    currentRewardIndex = remaining[nextPosition]
+                        HStack(alignment: .center, spacing: 12) {
+                            Button {
+                                let claimedSourceIndex = sourceIndex
+                                let claimKey = rewardClaimKey(reward, index: claimedSourceIndex)
+                                openCTAUrl(reward?.ctaUrl) {
+                                    claimedRewardIds.insert(claimKey)
+                                    onPrimary(reward?.id)
+                                    advanceAfterDismissing(
+                                        sourceIndex: claimedSourceIndex,
+                                        rewards: allRewards
+                                    )
                                 }
+                            } label: {
+                                Text(rewardLocale?.cta ?? popupLocale?.cta ?? "Claim now")
+                                    .font(.system(size: 15, weight: .heavy))
+                                    .lineSpacing(ctaButtonLineSpacing)
+                                    .multilineTextAlignment(.center)
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 44)
+                                    .background(theme.primary)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
-                        } label: {
-                            Text(rewardLocale?.cta ?? popupLocale?.cta ?? "Claim now")
-                                .font(.system(size: ctaButtonFontSize, weight: ctaButtonWeight))
-                                .lineSpacing(ctaButtonLineSpacing)
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(theme.onPrimary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 16)
-                                .frame(minHeight: ctaButtonMinHeight)
-                                .background(theme.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: max(12, ctaButtonCornerRadius)))
+                            .buttonStyle(PlainButtonStyle())
+
+                            Button {
+                                let claimedSourceIndex = sourceIndex
+                                let claimKey = rewardClaimKey(reward, index: claimedSourceIndex)
+                                claimedRewardIds.insert(claimKey)
+                                advanceAfterDismissing(
+                                    sourceIndex: claimedSourceIndex,
+                                    rewards: allRewards
+                                )
+                            } label: {
+                                Text(secondaryCtaLabel(popupLocale))
+                                    .font(.system(size: 15, weight: .regular))
+                                    .foregroundColor(.black)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.8)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .fixedSize(horizontal: true, vertical: false)
                         }
-                        .buttonStyle(PlainButtonStyle())
                         .padding(.horizontal, 16)
+                        .padding(.top, 6)
                     }
 
-                    VStack(spacing: 8) {
-                        if let terms = termsDisclaimer(rewardLocale?.terms), !terms.isEmpty {
-                            Text(terms)
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(supportingTextColor)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
-                        }
+                    if let terms = termsDisclaimer(rewardLocale?.terms), !terms.isEmpty {
+                        Text(terms)
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(supportingTextColor)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 2)
+                    }
 
-                        if config.showFooterLinks {
-                            footerLinks(
-                                reward: reward,
-                                popupLocale: popupLocale,
-                                lineSpacing: footerLinksLineSpacing
-                            )
-                        }
+                    if config.showFooterLinks {
+                        footerLinks(
+                            reward: reward,
+                            rewardLocale: rewardLocale,
+                            popupLocale: popupLocale,
+                            lineSpacing: footerLinksLineSpacing
+                        )
+                        .padding(.top, 2)
                     }
                 }
-                .padding(.bottom, bodyColumnBottomPadding())
+                .padding(.bottom, max(10, keyWindowBottomSafeAreaInset - 18))
                 .background(Color.white)
             }
+            .frame(maxWidth: .infinity)
             .background(Color.white)
-            .clipShape(RoundedCorner(radius: theme.radius, corners: [.topLeft, .topRight]))
-            .overlay(
-                RoundedCorner(radius: theme.radius, corners: [.topLeft, .topRight])
-                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
-            )
+            .clipShape(RoundedCorner(radius: max(theme.radius, 16), corners: [.topLeft, .topRight]))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -188,12 +175,6 @@ struct DelightGWRTemplate: View {
         }
     }
 
-    private func bodyColumnBottomPadding() -> CGFloat {
-        let base: CGFloat = 8
-        let tightenedSafeArea = max(8, keyWindowBottomSafeAreaInset - 12)
-        return base + tightenedSafeArea
-    }
-
     private var keyWindowBottomSafeAreaInset: CGFloat {
         UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
@@ -202,12 +183,13 @@ struct DelightGWRTemplate: View {
             .safeAreaInsets.bottom ?? 0
     }
 
-    private var headerBackground: Color {
-        Color(red: 0.95, green: 0.95, blue: 0.95)
+    private var supportingTextColor: Color {
+        Color(red: 0.42, green: 0.45, blue: 0.48)
     }
 
-    private var supportingTextColor: Color {
-        Color.black.opacity(0.45)
+    private func secondaryCtaLabel(_ popupLocale: DelightPopupLocaleDTO?) -> String {
+        let label = popupLocale?.secondaryCta?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return label.isEmpty ? "No thanks" : label
     }
 
     @ViewBuilder
@@ -216,56 +198,62 @@ struct DelightGWRTemplate: View {
         fontSize: CGFloat,
         closeButtonSize: CGFloat,
         closeButtonIconSize: CGFloat,
-        closeButtonCornerRadius: CGFloat,
-        closeButtonBG: Color,
-        closeButtonIconColor: Color
+        closeButtonCornerRadius: CGFloat
     ) -> some View {
-        ZStack {
-            if config.showOrderLine, let orderLine, !orderLine.isEmpty {
-                Text(orderLine.uppercased())
-                    .font(.system(size: max(11, fontSize - 3), weight: .semibold))
-                    .tracking(0.5)
-                    .foregroundColor(Color(red: 0.42, green: 0.42, blue: 0.42))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-                    .padding(.horizontal, closeButtonSize + 20)
+        HStack(alignment: .center, spacing: 10) {
+            if config.showHostLogo,
+               let hostLogoUrl = config.partnerLogo,
+               let hostLogoURL = URL(string: hostLogoUrl) {
+                RemoteRasterImageView(url: hostLogoURL, contentMode: .fit, templateTint: .white) {
+                    Color.clear
+                }
+                .frame(width: 50, height: 18)
+                .clipped()
+                .accessibilityLabel(config.hostDisplayName ?? "GWR")
             }
 
-            HStack {
-                Spacer()
-                if config.showCloseButton {
-                    Button {
-                        switch closeButtonAction {
-                        case .minimize:
-                            onMinimize()
-                        case .dismiss:
-                            onDismiss()
-                        }
-                    } label: {
-                        Image(systemName: closeButtonAction == .minimize ? "minus" : "xmark")
-                            .font(.system(size: closeButtonIconSize, weight: .bold))
-                            .foregroundColor(closeButtonIconColor)
-                            .frame(width: closeButtonSize, height: closeButtonSize)
-                            .background(closeButtonBG)
-                            .clipShape(RoundedRectangle(cornerRadius: max(4, closeButtonCornerRadius)))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: max(4, closeButtonCornerRadius))
-                                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
-                            )
+            if config.showOrderLine, let orderLine, !orderLine.isEmpty {
+                Text(orderLine)
+                    .font(.system(size: max(13, min(fontSize, 14)), weight: .semibold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Spacer(minLength: 0)
+            }
+
+            if config.showCloseButton {
+                Button {
+                    switch closeButtonAction {
+                    case .minimize:
+                        onMinimize()
+                    case .dismiss:
+                        onDismiss()
                     }
-                    .accessibilityLabel(
-                        closeButtonAction == .minimize
-                        ? "Minimize reward offer"
-                        : "Close reward offer"
-                    )
+                } label: {
+                    Image(systemName: closeButtonAction == .minimize ? "minus" : "xmark")
+                        .font(.system(size: max(14, closeButtonIconSize), weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: closeButtonSize, height: closeButtonSize)
+                        .background(Color.black.opacity(0.18))
+                        .clipShape(RoundedRectangle(cornerRadius: closeButtonCornerRadius))
                 }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel(
+                    closeButtonAction == .minimize
+                    ? "Minimize reward offer"
+                    : "Close reward offer"
+                )
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .frame(minHeight: 48)
-        .background(headerBackground)
+        .padding(.leading, 12)
+        .padding(.trailing, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 40)
+        .clipped()
+        .background(theme.primary)
     }
 
     @ViewBuilder
@@ -274,27 +262,31 @@ struct DelightGWRTemplate: View {
         height: CGFloat,
         objectFit: String
     ) -> some View {
-        Group {
-            if let imageUrl = reward?.postPopupMobileImage ?? reward?.postPopupWebImage,
-               let imageURL = URL(string: imageUrl) {
-                if imageURL.pathExtension.lowercased() == "svg" {
-                    SVGRemoteImageView(url: imageURL, objectFit: cssObjectFit(from: objectFit))
+        GeometryReader { geo in
+            ZStack {
+                if let imageUrl = reward?.postPopupMobileImage ?? reward?.postPopupWebImage,
+                   let imageURL = URL(string: imageUrl) {
+                    if imageURL.pathExtension.lowercased() == "svg" {
+                        SVGRemoteImageView(url: imageURL, objectFit: cssObjectFit(from: objectFit))
+                            .id(imageURL)
+                    } else {
+                        RemoteRasterImageView(
+                            url: imageURL,
+                            contentMode: contentMode(from: objectFit)
+                        ) {
+                            imagePlaceholder
+                        }
                         .id(imageURL)
-                } else {
-                    RemoteRasterImageView(
-                        url: imageURL,
-                        contentMode: contentMode(from: objectFit)
-                    ) {
-                        imagePlaceholder
                     }
-                    .id(imageURL)
+                } else {
+                    imagePlaceholder
                 }
-            } else {
-                imagePlaceholder
             }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
         }
-        .frame(height: height)
         .frame(maxWidth: .infinity)
+        .frame(height: height)
         .clipped()
     }
 
@@ -323,12 +315,35 @@ struct DelightGWRTemplate: View {
         return first
     }
 
+    private func advanceAfterDismissing(sourceIndex: Int, rewards: [DelightPopupRewardDTO]) {
+        let remaining = unclaimedSourceIndices(rewards: rewards, claimed: claimedRewardIds)
+        if let next = remaining.first(where: { $0 > sourceIndex }) {
+            currentRewardIndex = next
+            return
+        }
+        if remaining.isEmpty {
+            onRewardsExhausted()
+            return
+        }
+        currentRewardIndex = remaining[0]
+    }
+
     private func syncCurrentRewardIndexToVisibleRewards(allRewards: [DelightPopupRewardDTO]) {
         let visible = unclaimedSourceIndices(rewards: allRewards, claimed: claimedRewardIds)
         guard let first = visible.first else { return }
         if !visible.contains(currentRewardIndex) {
             currentRewardIndex = first
         }
+    }
+
+    private func firstDescriptionParagraph(_ html: String?) -> String? {
+        guard let html else { return nil }
+        if let match = html.range(of: "(?is)<p[^>]*>(.*?)</p>", options: .regularExpression) {
+            let text = String(html[match]).htmlToPlainText()
+            if !text.isEmpty { return text }
+        }
+        let text = html.htmlToPlainText()
+        return text.isEmpty ? nil : text
     }
 
     private func termsDisclaimer(_ termsHtml: String?) -> String? {
@@ -339,9 +354,21 @@ struct DelightGWRTemplate: View {
         return plain
     }
 
-    private func partnerTermsLinkLabel(_ popupLocale: DelightPopupLocaleDTO?) -> String {
-        mirrorOptionalString(label: "partnerTerms", in: popupLocale)
-            ?? "Partner Terms & Conditions"
+    private func headerLine(
+        rewardLocale: DelightPopupRewardLocaleDTO?,
+        popupLocale: DelightPopupLocaleDTO?
+    ) -> String? {
+        let thankyouLine = rewardLocale?.thankyouLine?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !thankyouLine.isEmpty { return thankyouLine }
+        let orderLine = popupLocale?.orderLine?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return orderLine.isEmpty ? nil : orderLine
+    }
+
+    private func partnerTermsLinkLabel(
+        rewardLocale: DelightPopupRewardLocaleDTO?,
+        popupLocale: DelightPopupLocaleDTO?
+    ) -> String {
+        footerLabel(rewardLocale?.partnerTermsContent, popupLocale?.partnerTerms, fallback: "")
     }
 
     private func mirrorOptionalString(label: String, in value: Any?) -> String? {
@@ -372,30 +399,62 @@ struct DelightGWRTemplate: View {
     @ViewBuilder
     private func footerLinks(
         reward: DelightPopupRewardDTO?,
+        rewardLocale: DelightPopupRewardLocaleDTO?,
         popupLocale: DelightPopupLocaleDTO?,
         lineSpacing: CGFloat
     ) -> some View {
-        let partnerTermsLabel = partnerTermsLinkLabel(popupLocale)
-        let poweredByLabel = popupLocale?.poweredBy ?? "Powered by RewardsBag"
-        let privacyLabel = popupLocale?.privacyPolicy ?? "Privacy Policy"
-        HStack(spacing: 6) {
-            footerLink(title: partnerTermsLabel, rawUrl: mirrorOptionalString(label: "partnerTermsUrl", in: reward))
-            Text("|")
-                .foregroundColor(supportingTextColor)
-                .accessibilityHidden(true)
-            footerLink(title: poweredByLabel, rawUrl: mirrorOptionalString(label: "poweredByUrl", in: reward))
-            Text("|")
-                .foregroundColor(supportingTextColor)
-                .accessibilityHidden(true)
-            footerLink(title: privacyLabel, rawUrl: mirrorOptionalString(label: "privacyPolicyUrl", in: reward))
+        let partnerTermsLabel = partnerTermsLinkLabel(rewardLocale: rewardLocale, popupLocale: popupLocale)
+        let poweredByLabel = footerLabel(
+            rewardLocale?.poweredByContent,
+            popupLocale?.poweredBy,
+            fallback: ""
+        )
+        let privacyLabel = footerLabel(
+            rewardLocale?.privacyContent,
+            popupLocale?.privacyPolicy,
+            fallback: ""
+        )
+        let partnerTermsURL = mirrorOptionalString(label: "partnerTermsUrl", in: reward)
+        HStack(spacing: 0) {
+            if !partnerTermsLabel.isEmpty {
+                footerLink(title: partnerTermsLabel, rawUrl: partnerTermsURL)
+                if !poweredByLabel.isEmpty || !privacyLabel.isEmpty {
+                    footerSeparator()
+                }
+            }
+            if !poweredByLabel.isEmpty {
+                footerLink(title: poweredByLabel, rawUrl: mirrorOptionalString(label: "poweredByUrl", in: reward))
+                if !privacyLabel.isEmpty {
+                    footerSeparator()
+                }
+            }
+            if !privacyLabel.isEmpty {
+                footerLink(title: privacyLabel, rawUrl: mirrorOptionalString(label: "privacyPolicyUrl", in: reward))
+            }
         }
-        .font(.system(size: 10, weight: .medium))
-        .foregroundColor(Color.black.opacity(0.55))
+        .font(.system(size: 10, weight: .regular))
+        .foregroundColor(supportingTextColor)
         .lineSpacing(lineSpacing)
         .lineLimit(1)
-        .minimumScaleFactor(0.65)
-        .allowsTightening(true)
+        .minimumScaleFactor(0.7)
         .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+    }
+
+    private func footerLabel(_ rewardValue: String?, _ popupValue: String?, fallback: String) -> String {
+        let rewardLabel = rewardValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !rewardLabel.isEmpty { return rewardLabel }
+        let popupLabel = popupValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !popupLabel.isEmpty { return popupLabel }
+        return fallback
+    }
+
+    private func footerSeparator() -> some View {
+        Text(" · ")
+            .foregroundColor(supportingTextColor)
+            .lineLimit(1)
+            .fixedSize()
+            .accessibilityHidden(true)
     }
 
     private func footerLink(title: String, rawUrl: String?) -> some View {
@@ -405,6 +464,8 @@ struct DelightGWRTemplate: View {
         } label: {
             Text(title)
                 .underline()
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(resolvedCTAUrl(from: rawUrl) == nil)
@@ -438,108 +499,6 @@ struct DelightGWRTemplate: View {
                     .font(.system(size: 36, weight: .light))
                     .foregroundColor(Color.black.opacity(0.35))
             )
-    }
-
-    private func numberedSliderControls(
-        visibleSourceIndices: [Int],
-        selectedSourceIndex: Int,
-        activeColor: Color,
-        inactiveColor: Color,
-        arrowColor: Color
-    ) -> some View {
-        let rewardCount = visibleSourceIndices.count
-        let selectedIndex = visibleSourceIndices.firstIndex(of: selectedSourceIndex) ?? 0
-
-        return HStack(spacing: 14) {
-            Button {
-                guard rewardCount > 0 else { return }
-                let next = (selectedIndex - 1 + rewardCount) % rewardCount
-                currentRewardIndex = visibleSourceIndices[next]
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(arrowColor)
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(PlainButtonStyle())
-            .accessibilityLabel("Previous reward")
-
-            HStack(spacing: 10) {
-                ForEach(Array(visibleSourceIndices.enumerated()), id: \.offset) { position, sourceIndex in
-                    Button {
-                        currentRewardIndex = sourceIndex
-                    } label: {
-                        Text("\(position + 1)")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(position == selectedIndex ? Color.white : Color.black.opacity(0.55))
-                            .frame(width: 28, height: 28)
-                            .background(position == selectedIndex ? activeColor : inactiveColor)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .accessibilityLabel("Go to reward \(position + 1)")
-                    .accessibilityAddTraits(position == selectedIndex ? .isSelected : [])
-                }
-            }
-
-            Button {
-                guard rewardCount > 0 else { return }
-                let next = (selectedIndex + 1) % rewardCount
-                currentRewardIndex = visibleSourceIndices[next]
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(arrowColor)
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(PlainButtonStyle())
-            .accessibilityLabel("Next reward")
-        }
-    }
-
-    private func fontWeight(from rawValue: Double, fallback: Font.Weight) -> Font.Weight {
-        switch rawValue {
-        case ..<350: return .light
-        case ..<450: return .regular
-        case ..<550: return .medium
-        case ..<650: return .semibold
-        case ..<750: return .bold
-        default: return .heavy
-        }
-    }
-
-    private func colorFromHex(_ hex: String?, fallback: Color) -> Color {
-        guard let hex else { return fallback }
-        let cleaned = hex.replacingOccurrences(of: "#", with: "")
-        guard cleaned.count == 6, let value = Int(cleaned, radix: 16) else {
-            return fallback
-        }
-        let red = Double((value >> 16) & 0xFF) / 255.0
-        let green = Double((value >> 8) & 0xFF) / 255.0
-        let blue = Double(value & 0xFF) / 255.0
-        return Color(red: red, green: green, blue: blue)
-    }
-
-    private func colorFromCss(_ css: String?, fallback: Color) -> Color {
-        guard let css else { return fallback }
-        let value = css.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if value.hasPrefix("#") {
-            return colorFromHex(value, fallback: fallback)
-        }
-        if value.hasPrefix("rgba("), value.hasSuffix(")") {
-            let raw = value
-                .replacingOccurrences(of: "rgba(", with: "")
-                .replacingOccurrences(of: ")", with: "")
-            let components = raw.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-            if components.count == 4,
-               let red = Double(components[0]),
-               let green = Double(components[1]),
-               let blue = Double(components[2]),
-               let alpha = Double(components[3]) {
-                return Color(red: red / 255.0, green: green / 255.0, blue: blue / 255.0, opacity: alpha)
-            }
-        }
-        return fallback
     }
 
     private func lineSpacing(fontSize: CGFloat, lineHeight: Double) -> CGFloat {
@@ -623,6 +582,7 @@ private struct SafariFallbackView: UIViewControllerRepresentable {
 private struct RemoteRasterImageView<Placeholder: View>: View {
     let url: URL
     let contentMode: ContentMode
+    var templateTint: Color? = nil
     @ViewBuilder var placeholder: () -> Placeholder
 
     @StateObject private var loader = RemoteRasterImageLoader()
@@ -630,9 +590,17 @@ private struct RemoteRasterImageView<Placeholder: View>: View {
     var body: some View {
         Group {
             if let image = loader.image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: contentMode)
+                if let templateTint {
+                    Image(uiImage: image.withRenderingMode(.alwaysTemplate))
+                        .resizable()
+                        .renderingMode(.template)
+                        .foregroundColor(templateTint)
+                        .aspectRatio(contentMode: contentMode)
+                } else {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: contentMode)
+                }
             } else {
                 placeholder()
             }

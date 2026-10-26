@@ -354,11 +354,15 @@ func failSafeMakeReward(id: String, ticketType: String? = nil) -> DelightPopupRe
         locales: [
             "en": DelightPopupRewardLocaleDTO(
                 headline: "Test reward",
+                thankyouLine: nil,
                 description: nil,
                 ctaHelperText: nil,
                 emailDisclaimer: nil,
                 terms: nil,
-                cta: nil
+                cta: nil,
+                partnerTermsContent: nil,
+                poweredByContent: nil,
+                privacyContent: nil
             )
         ],
         ticketType: ticketType,

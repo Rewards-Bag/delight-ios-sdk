@@ -36,4 +36,35 @@ enum DelightPopupSessionStore {
     static func clear() {
         UserDefaults.standard.removeObject(forKey: defaultsKey)
     }
+
+    private static let exhaustedKey = "delight.sdk.popup-exhausted.v1"
+
+    static func markRewardsExhausted(orderId: String, brandName: String) {
+        let token = exhaustionToken(orderId: orderId, brandName: brandName)
+        guard !token.isEmpty else { return }
+        var tokens = exhaustedTokens()
+        tokens.insert(token)
+        UserDefaults.standard.set(Array(tokens), forKey: exhaustedKey)
+    }
+
+    static func areRewardsExhausted(orderId: String?, brandName: String?) -> Bool {
+        let token = exhaustionToken(orderId: orderId ?? "", brandName: brandName ?? "")
+        guard !token.isEmpty else { return false }
+        return exhaustedTokens().contains(token)
+    }
+
+    static func clearExhaustedRewards() {
+        UserDefaults.standard.removeObject(forKey: exhaustedKey)
+    }
+
+    private static func exhaustionToken(orderId: String, brandName: String) -> String {
+        let order = orderId.trimmingCharacters(in: .whitespacesAndNewlines)
+        let brand = brandName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !order.isEmpty, !brand.isEmpty else { return "" }
+        return "\(brand)|\(order)"
+    }
+
+    private static func exhaustedTokens() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: exhaustedKey) ?? [])
+    }
 }

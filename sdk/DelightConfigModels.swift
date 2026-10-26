@@ -72,11 +72,15 @@ struct DelightPopupRewardDTO: Decodable {
 
 struct DelightPopupRewardLocaleDTO: Decodable {
     let headline: String?
+    let thankyouLine: String?
     let description: String?
     let ctaHelperText: String?
     let emailDisclaimer: String?
     let terms: String?
     let cta: String?
+    let partnerTermsContent: String?
+    let poweredByContent: String?
+    let privacyContent: String?
 }
 
 struct DelightPopupThemeConfigDTO: Decodable {
