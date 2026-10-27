@@ -67,10 +67,18 @@ public struct DelightPopupView: View {
 #else
             popupTemplate(config: config, theme: theme)
 #endif
-        case .failed:
-            EmptyView()
-        case .idle, .hidden:
-            EmptyView()
+        case .failed, .idle, .hidden:
+            // A clear full-screen window would swallow taps on the host screen,
+            // including ticket activation. Never keep that window once the offer is gone.
+            Color.clear
+                .frame(width: 0, height: 0)
+                .allowsHitTesting(false)
+                .onAppear {
+                    Task { @MainActor in
+                        DelightPopupOverlay.hide()
+                        DelightMinimizedBadgeOverlay.hide()
+                    }
+                }
         }
     }
 
@@ -167,7 +175,7 @@ enum DelightPopupOverlay {
         guard popupWindow == nil else { return }
         guard let windowScene = DelightOverlayWindowScene.active() else { return }
 
-        let window = UIWindow(windowScene: windowScene)
+        let window = DelightHostSafeWindow(windowScene: windowScene)
         window.windowLevel = UIWindow.Level(rawValue: UIWindow.Level.normal.rawValue + 1)
         window.backgroundColor = UIColor.clear
 
@@ -179,6 +187,10 @@ enum DelightPopupOverlay {
     }
 
     static func hide() {
+        if let window = popupWindow as? DelightHostSafeWindow {
+            window.passesTouchesToHost = true
+        }
+        popupWindow?.isUserInteractionEnabled = false
         popupWindow?.isHidden = true
         popupWindow?.rootViewController = nil
         popupWindow = nil
@@ -228,6 +240,19 @@ enum DelightMinimizedBadgeOverlay {
         badgeWindow?.clearHostedContent()
         badgeWindow?.isHidden = true
         badgeWindow = nil
+    }
+}
+
+/// Full-screen overlay that can be told to stop taking taps so the host app,
+/// including ticket activation, stays usable if the popup is dismissed or fails.
+private final class DelightHostSafeWindow: UIWindow {
+    var passesTouchesToHost = false
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        if passesTouchesToHost || !isUserInteractionEnabled || isHidden {
+            return nil
+        }
+        return super.hitTest(point, with: event)
     }
 }
 
