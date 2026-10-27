@@ -2,8 +2,15 @@ import Foundation
 
 /// Crash isolation: config load, template render, lifecycle edges, and host callback boundaries.
 enum DelightFailSafe {
+    /// Runs host-facing work. A thrown error is reported and never leaves the SDK.
+    static func protectHost(_ operation: () throws -> Void, onFailure: (Error) -> Void) {
+        run(operation, onFailure: onFailure)
+    }
+
     static func run(_ operation: () -> Void) {
-        operation()
+        run({
+            operation()
+        } as () throws -> Void)
     }
 
     static func run(_ operation: () throws -> Void, onFailure: (Error) -> Void) {
@@ -61,17 +68,17 @@ enum DelightSessionGuard {
 enum DelightHostCallbacks {
     static func invokeImpression(_ callback: ((String?) -> Void)?, rewardId: String?) {
         guard let callback else { return }
-        DelightFailSafe.run { callback(rewardId) }
+        DelightFailSafe.run({ callback(rewardId) } as () throws -> Void)
     }
 
     static func invokePrimaryClick(_ callback: ((String?) -> Void)?, rewardId: String?) {
         guard let callback else { return }
-        DelightFailSafe.run { callback(rewardId) }
+        DelightFailSafe.run({ callback(rewardId) } as () throws -> Void)
     }
 
     static func invokeDismiss(_ callback: (() -> Void)?) {
         guard let callback else { return }
-        DelightFailSafe.run { callback() }
+        DelightFailSafe.run({ callback() } as () throws -> Void)
     }
 }
 

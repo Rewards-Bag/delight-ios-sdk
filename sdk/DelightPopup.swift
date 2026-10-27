@@ -106,10 +106,14 @@ public enum Delight {
         callbacks: DelightCallbacks = .init()
     ) {
         guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
-        DelightPopupController.shared.show(
-            payload: payloadWithResolvedUserToken(payload),
-            callbacks: callbacks
-        )
+        DelightFailSafe.protectHost {
+            DelightPopupController.shared.show(
+                payload: payloadWithResolvedUserToken(payload),
+                callbacks: callbacks
+            )
+        } onFailure: { _ in
+            DelightPopupController.shared.abandonPresentationSilently()
+        }
     }
 
     @available(*, deprecated, renamed: "showRewardPopup(_:callbacks:)")
@@ -122,7 +126,11 @@ public enum Delight {
 
     public static func dismiss() {
         guard !DelightSessionGuard.shouldNoOpPublicAPI else { return }
-        DelightPopupController.shared.dismissSafely()
+        DelightFailSafe.protectHost {
+            DelightPopupController.shared.dismissSafely()
+        } onFailure: { _ in
+            DelightPopupController.shared.abandonPresentationSilently()
+        }
     }
 
     @available(*, deprecated, message: "Not required; the SDK observes UIApplication background/foreground automatically.")
