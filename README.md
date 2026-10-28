@@ -145,6 +145,7 @@ All arguments are optional, including `ticketTypes`.
     NSLog(@"Popup dismissed");
 }
                       onError:^(NSString * message) {
+    // Reserved. The SDK does not call this.
     NSLog(@"Error: %@", message);
 }];
 ```
@@ -220,7 +221,27 @@ The SDK is designed so a bad CDN deploy or internal bug never breaks the host ap
 - **Deferred UI work** uses a presentation epoch so async build steps cannot update UI after dismiss; badge pulse uses a cancellable `Task` instead of `asyncAfter`.
 - **Pre-render validation** (`DelightConfigValidator`) requires enabled popup, supported template, and each visible reward to have a non-empty id plus headline or HTTPS image URL (and valid optional URLs).
 
-Host callbacks (`onImpression`, `onPrimaryClick`, `onDismiss`) are invoked inside `DelightHostCallbacks` so partner code cannot crash the app.
+Host callbacks (`onImpression`, `onPrimaryClick`, `onDismiss`) are invoked inside `DelightHostCallbacks` so a throw in host code is swallowed. `onError` is reserved and is never called.
+
+The SDK draws no popup while it is fetching. The popup window is created only after a reward is ready, and the SDK removes that window itself. Do not show a host loading overlay that waits for `onError` to clear it. `DelightPopupPresenter` is a zero-size hook, not a loading screen.
+
+## What the host sees
+
+| State | What the host sees | Callback |
+|-------|--------------------|----------|
+| Reward ready | SDK popup window over the app | `onImpression` when the reward is first visible |
+| Claim | Popup stays or moves to the next reward, depending on the template. It closes when none remain | `onPrimaryClick` |
+| User dismisses, or every reward is claimed or skipped | Popup window removed. Taps return to the app | `onDismiss` |
+| Daily cap reached | Nothing. Only applies when the config has `suppressionRules`. GWR’s config does not, so this does not run | None. `onError` is not called |
+| No matching reward, or empty reward list | Nothing | None |
+| Invalid or missing config, timeout, or offline | Nothing. After a failed `initialize`, later `show` calls do nothing until the app restarts | None |
+| Render failure (unknown template, or the popup throws while building) | Overlay removed. Nothing left on screen | None |
+| Broken image URL | Popup still opens. The image area stays empty | `onImpression` |
+| Dismiss or background while the config is still loading | Popup never appears. A late response is ignored | None |
+| App returns to foreground with the popup open | Same popup restored | No second `onImpression` for a reward already seen |
+| Minimized, present icon on | Popup window removed. Gift icon only. Other taps reach the app | None until the icon is opened again |
+
+What the host should do: keep `DelightPopupPresenter` mounted, call `showRewardPopup` after a purchase, and handle `onImpression`, `onPrimaryClick`, and `onDismiss` if you need them. Do not gate ticket activation or a loading spinner on `onError`.
 
 ## QA / Local Testing
 
@@ -273,4 +294,4 @@ When the block is present, counting is on-device (UserDefaults). Missing fields 
 
 - Footer links, CTA handling, impressions, claims, and local suppression are handled by the SDK.
 - Keep `DelightPopupPresenter` mounted in the view hierarchy while a popup may be shown.
-- If the API is unreachable, returns an error, or configuration is invalid, the SDK fires the error callback and does not display the popup.
+- If the API is unreachable, times out, or the config is invalid, the SDK shows nothing and does not call `onError`.
