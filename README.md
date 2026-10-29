@@ -20,7 +20,7 @@ DelightSDK is an iOS SDK for showing post-purchase reward popups. Layout, copy, 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Rewards-Bag/delight-ios-sdk.git", from: "1.0.0")
+    .package(url: "https://github.com/Rewards-Bag/delight-ios-sdk.git", exact: "1.0.10")
 ],
 targets: [
     .target(
@@ -232,12 +232,12 @@ The SDK draws no popup while it is fetching. The popup window is created only af
 | Reward ready | SDK popup window over the app | `onImpression` when the reward is first visible |
 | Claim | Popup stays or moves to the next reward, depending on the template. It closes when none remain | `onPrimaryClick` |
 | User dismisses, or every reward is claimed or skipped | Popup window removed. Taps return to the app | `onDismiss` |
-| Daily cap reached | Nothing. Only applies when the config has `suppressionRules`. GWR’s config does not, so this does not run | None. `onError` is not called |
+| Daily cap reached | Nothing. Only when the config includes `suppressionRules` | None. `onError` is not called |
 | No matching reward, or empty reward list | Nothing | None |
-| Invalid or missing config, timeout, or offline | Nothing. After a failed `initialize`, later `show` calls do nothing until the app restarts | None |
+| Invalid or missing config, timeout, or offline | Nothing. A failed `initialize` turns later `show` calls off until the app restarts | None |
 | Render failure (unknown template, or the popup throws while building) | Overlay removed. Nothing left on screen | None |
 | Broken image URL | Popup still opens. The image area stays empty | `onImpression` |
-| Dismiss or background while the config is still loading | Popup never appears. A late response is ignored | None |
+| Dismiss while the config is still loading | Popup never appears. A late response is ignored | `onDismiss` |
 | App returns to foreground with the popup open | Same popup restored | No second `onImpression` for a reward already seen |
 | Minimized, present icon on | Popup window removed. Gift icon only. Other taps reach the app | None until the icon is opened again |
 
