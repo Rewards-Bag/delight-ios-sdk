@@ -241,7 +241,7 @@ The SDK draws no popup while it is fetching. The popup window is created only af
 | App returns to foreground with the popup open | Same popup restored | No second `onImpression` for a reward already seen |
 | Minimized, present icon on | Popup window removed. Gift icon only. Other taps reach the app | None until the icon is opened again |
 
-What the host should do: keep `DelightPopupPresenter` mounted, call `showRewardPopup` after a purchase, and handle `onImpression`, `onPrimaryClick`, and `onDismiss` if you need them. Do not gate ticket activation or a loading spinner on `onError`.
+What the host should do: keep `DelightPopupPresenter` mounted, call `showRewardPopup` after a purchase, and handle `onImpression`, `onPrimaryClick`, and `onDismiss` if you need them. Do not gate ticket activation or a loading spinner on any Delight callback.
 
 ## QA / Local Testing
 
