@@ -5,7 +5,7 @@ import XCTest
 @testable import sdk
 #endif
 
-/// Fail-safe parity with Delight Android SDK v1.1.2 (8 cases). See `DelightFailSafeReport`.
+/// Fail-safe parity with Delight Android SDK v1.1.7 (8 cases). See `DelightFailSafeReport`.
 final class DelightFailSafeTests: DelightFailSafeTestCase {
 
     // MARK: Config
@@ -287,7 +287,7 @@ final class DelightFailSafeTests: DelightFailSafeTestCase {
     /// Prints the Android-style report (also emitted automatically after all 8 cases pass).
     func testFailSafeReport_manifestMatchesAndroidLayout() {
         let report = DelightFailSafeReport.formattedReport()
-        XCTAssertTrue(report.contains("Delight iOS SDK v1.1.2 — fail-safe test report"))
+        XCTAssertTrue(report.contains("Delight iOS SDK v1.0.11 — fail-safe test report"))
         XCTAssertTrue(report.contains("Config"))
         XCTAssertTrue(report.contains("Render isolation"))
         XCTAssertTrue(report.contains("Native lifecycle"))

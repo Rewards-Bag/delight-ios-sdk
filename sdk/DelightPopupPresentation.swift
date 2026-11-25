@@ -75,8 +75,11 @@ public struct DelightPopupView: View {
                 .allowsHitTesting(false)
                 .onAppear {
                     Task { @MainActor in
+#if canImport(UIKit)
                         DelightPopupOverlay.hide()
                         DelightMinimizedBadgeOverlay.hide()
+                        DelightPageScopedPresentIcon.hide(intentional: true)
+#endif
                     }
                 }
         }
@@ -143,10 +146,45 @@ public struct DelightPopupPresenter: View {
     public init() {}
 
     public var body: some View {
+#if canImport(UIKit)
+        DelightPagePresenceAnchor()
+            .frame(width: 0, height: 0)
+#else
         Color.clear
             .frame(width: 0, height: 0)
+#endif
     }
 }
+
+#if canImport(UIKit)
+private struct DelightPagePresenceAnchor: UIViewRepresentable {
+    func makeUIView(context: Context) -> DelightPagePresenceView {
+        let view = DelightPagePresenceView()
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ uiView: DelightPagePresenceView, context: Context) {}
+}
+
+private final class DelightPagePresenceView: UIView {
+    private var wasInWindow = false
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            wasInWindow = true
+            return
+        }
+        guard wasInWindow else { return }
+        wasInWindow = false
+        Task { @MainActor in
+            DelightPopupController.shared.retirePresentIconForPageLeave()
+        }
+    }
+}
+#endif
 
 #if canImport(UIKit)
 @MainActor
@@ -240,6 +278,183 @@ enum DelightMinimizedBadgeOverlay {
         badgeWindow?.clearHostedContent()
         badgeWindow?.isHidden = true
         badgeWindow = nil
+    }
+}
+
+/// GWR gift icon. It is added to the page that was showing when the customer minimised,
+/// so a later screen does not keep it. Leaving that page removes it for the booking.
+@MainActor
+enum DelightPageScopedPresentIcon {
+    private static var anchorController: DelightPageAnchorController?
+    private static var badgeController: UIHostingController<DelightMinimizedRewardBadge>?
+    private static var onPageLeft: (() -> Void)?
+    private static var suppressLeave = false
+
+    static func show(
+        theme: DelightPopupTheme,
+        onTap: @escaping () -> Void,
+        onPageLeft: @escaping () -> Void
+    ) {
+        hide(intentional: true)
+        guard let page = topViewController(), page.viewIfLoaded != nil else { return }
+        self.onPageLeft = onPageLeft
+
+        let anchor = DelightPageAnchorController()
+        anchor.onDidDisappear = {
+            guard !suppressLeave else { return }
+            let callback = self.onPageLeft
+            self.onPageLeft = nil
+            hide(intentional: true)
+            callback?()
+        }
+        page.addChild(anchor)
+        anchor.view.isUserInteractionEnabled = false
+        anchor.view.frame = .zero
+        page.view.addSubview(anchor.view)
+        anchor.didMove(toParent: page)
+        anchor.beginWatching(page: page)
+        anchorController = anchor
+
+        let badge = UIHostingController(
+            rootView: DelightMinimizedRewardBadge(theme: theme, onTap: onTap)
+        )
+        badge.view.backgroundColor = UIColor.clear
+        badge.view.translatesAutoresizingMaskIntoConstraints = false
+        page.view.addSubview(badge.view)
+        let guide = page.view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            badge.view.widthAnchor.constraint(equalToConstant: 80),
+            badge.view.heightAnchor.constraint(equalToConstant: 80),
+            badge.view.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -16),
+            badge.view.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -16)
+        ])
+        badgeController = badge
+    }
+
+    static func hide(intentional: Bool) {
+        let previous = suppressLeave
+        suppressLeave = true
+        anchorController?.onDidDisappear = nil
+        anchorController?.willMove(toParent: nil)
+        anchorController?.view.removeFromSuperview()
+        anchorController?.removeFromParent()
+        anchorController = nil
+        badgeController?.view.removeFromSuperview()
+        badgeController = nil
+        if intentional {
+            onPageLeft = nil
+        }
+        suppressLeave = previous
+    }
+
+    private static func topViewController() -> UIViewController? {
+        guard let scene = DelightOverlayWindowScene.active() else { return nil }
+        let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController
+            ?? scene.windows.first?.rootViewController
+        guard let root else { return nil }
+        if let navigation = navigationController(from: root),
+           let visible = navigation.visibleViewController {
+            return deepest(visible)
+        }
+        return deepest(root)
+    }
+
+    /// SwiftUI NavigationStack keeps the window root mounted and pushes the
+    /// booking screen as the navigation controller's visible page.
+    private static func navigationController(from viewController: UIViewController) -> UINavigationController? {
+        if let navigation = viewController as? UINavigationController {
+            return navigation
+        }
+        if let navigation = viewController.navigationController {
+            return navigation
+        }
+        for child in viewController.children where !(child is DelightPageAnchorController) {
+            if let navigation = navigationController(from: child) {
+                return navigation
+            }
+        }
+        guard let view = viewController.viewIfLoaded else { return nil }
+        return navigationController(in: view)
+    }
+
+    private static func navigationController(in view: UIView) -> UINavigationController? {
+        if let bar = view as? UINavigationBar, let navigation = bar.delegate as? UINavigationController {
+            return navigation
+        }
+        var responder: UIResponder? = view.next
+        while let current = responder {
+            if let navigation = current as? UINavigationController {
+                return navigation
+            }
+            responder = current.next
+        }
+        for subview in view.subviews {
+            if let navigation = navigationController(in: subview) {
+                return navigation
+            }
+        }
+        return nil
+    }
+
+    private static func deepest(_ viewController: UIViewController?) -> UIViewController? {
+        guard let viewController, !(viewController is DelightPageAnchorController) else { return nil }
+        if let presented = viewController.presentedViewController, !(presented is DelightPageAnchorController) {
+            return deepest(presented)
+        }
+        if let navigation = viewController as? UINavigationController {
+            let visible = navigation.visibleViewController ?? navigation.topViewController
+            if let visible, visible !== navigation {
+                return deepest(visible)
+            }
+        }
+        if let tabs = viewController as? UITabBarController, let selected = tabs.selectedViewController {
+            return deepest(selected)
+        }
+        if let page = viewController as? UIPageViewController, let current = page.viewControllers?.first {
+            return deepest(current)
+        }
+        for child in viewController.children.reversed() where !(child is DelightPageAnchorController) {
+            if child is UINavigationController || child is UITabBarController || child is UIPageViewController {
+                return deepest(child)
+            }
+        }
+        return viewController
+    }
+}
+
+private final class DelightPageAnchorController: UIViewController {
+    var onDidDisappear: (() -> Void)?
+    private var navigationObservation: NSKeyValueObservation?
+    private weak var anchoredPage: UIViewController?
+    private var didReportLeave = false
+
+    func beginWatching(page: UIViewController) {
+        anchoredPage = page
+        guard let navigation = page.navigationController else { return }
+        navigationObservation = navigation.observe(\.viewControllers, options: [.new]) { [weak self] navigation, _ in
+            DispatchQueue.main.async {
+                self?.leaveIfPageCovered(navigation)
+            }
+        }
+    }
+
+    private func leaveIfPageCovered(_ navigation: UINavigationController) {
+        guard let page = anchoredPage else { return }
+        guard navigation.visibleViewController !== page else { return }
+        reportLeave()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        reportLeave()
+    }
+
+    private func reportLeave() {
+        guard !didReportLeave else { return }
+        didReportLeave = true
+        navigationObservation?.invalidate()
+        navigationObservation = nil
+        onDidDisappear?()
     }
 }
 

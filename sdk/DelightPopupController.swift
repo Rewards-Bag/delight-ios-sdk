@@ -173,25 +173,59 @@ final class DelightPopupController: ObservableObject {
         DelightHostCallbacks.invokeDismiss(dismissCallback)
     }
 
-    /// Collapses the popup to a floating present icon without recording an ignore.
+    /// Collapses the popup to a present icon without recording an ignore.
+    /// GWR can do this again after every reopen. Stagecoach still switches to X on reopen.
     func minimize() {
         guard case .ready(let config, _, _) = state, config.isPresentIconEnabled else { return }
+        let rewardId = visibleRewardId(in: config)
         hidePopupOverlay()
         isMinimized = true
         isPresented = false
-        showMinimizedBadgeOverlay()
+        if config.isGWRBrand {
+            closeButtonShowsDismiss = false
+            DelightHostCallbacks.invokeOverlayMinimised(callbacks.onOverlayMinimised, rewardId: rewardId)
+        }
+        showMinimizedPresentIcon()
         persistSessionSnapshot()
     }
 
-    /// Reopens the reward popup from the minimized present icon (close button becomes X).
+    /// Reopens the reward popup from the present icon.
+    /// Stagecoach then shows X. GWR keeps minimise so the customer can minimise again.
     func expandFromMinimized() {
         guard case .ready(let config, _, _) = state, config.isPresentIconEnabled else { return }
+        let rewardId = visibleRewardId(in: config)
+        if config.isGWRBrand {
+            DelightHostCallbacks.invokeGiftIconTapped(callbacks.onGiftIconTapped, rewardId: rewardId)
+        }
         hideMinimizedBadgeOverlay()
-        closeButtonShowsDismiss = true
+        closeButtonShowsDismiss = !config.isGWRBrand
         isMinimized = false
         isPresented = true
         showPopupOverlay()
         persistSessionSnapshot()
+    }
+
+    /// GWR: the customer left the page that owns the gift icon. The icon does not return for this booking.
+    func retirePresentIconForPageLeave() {
+        guard isMinimized, isCurrentPresentationGwr else { return }
+#if canImport(UIKit)
+        DelightPageScopedPresentIcon.hide(intentional: true)
+        DelightMinimizedBadgeOverlay.hide()
+#endif
+        isMinimized = false
+        isPresented = false
+        DelightPopupSessionStore.clear()
+    }
+
+    private func visibleRewardId(in config: DelightConfigDTO) -> String? {
+        let rewards = config.resolvedRewards
+        if !rewards.isEmpty {
+            let index = min(max(carouselRewardIndex, 0), rewards.count - 1)
+            if let id = rewards[index].id, !id.isEmpty {
+                return id
+            }
+        }
+        return currentRewardId
     }
 
     func markRewardBecameVisible(at index: Int, in config: DelightConfigDTO) {
@@ -325,7 +359,11 @@ final class DelightPopupController: ObservableObject {
         claimedRewardIds = Set(snapshot.claimedRewardIds)
         impressedRewardIdsThisPresentation = Set(snapshot.impressedRewardIds)
         isMinimized = snapshot.isMinimized
-        closeButtonShowsDismiss = snapshot.isMinimized || !(config?.isPresentIconEnabled ?? true)
+        if config?.isGWRBrand == true {
+            closeButtonShowsDismiss = !(config?.isPresentIconEnabled ?? true)
+        } else {
+            closeButtonShowsDismiss = snapshot.isMinimized || !(config?.isPresentIconEnabled ?? true)
+        }
         return true
     }
 
@@ -336,7 +374,7 @@ final class DelightPopupController: ObservableObject {
     func handleEnterForegroundForLifecycle() {
         guard case .ready = state else { return }
         if isMinimized {
-            showMinimizedBadgeOverlay()
+            showMinimizedPresentIcon()
         } else if isPresented {
             showPopupOverlay()
         }
@@ -348,7 +386,7 @@ final class DelightPopupController: ObservableObject {
         if isPresented {
             showPopupOverlay()
         } else if isMinimized {
-            showMinimizedBadgeOverlay()
+            showMinimizedPresentIcon()
         }
     }
 
@@ -462,7 +500,7 @@ final class DelightPopupController: ObservableObject {
             brandName: initializedBrandName
         ), isMinimized {
             isPresented = false
-            showMinimizedBadgeOverlay()
+            showMinimizedPresentIcon()
             persistSessionSnapshot()
             return
         }
@@ -542,6 +580,32 @@ final class DelightPopupController: ObservableObject {
         return DelightPopupTheme.fromBrandTheme(config?.popup?.theme)
     }
 
+    private var isCurrentPresentationGwr: Bool {
+        if case .ready(let config, _, _) = state {
+            return config.isGWRBrand
+        }
+        return config?.isGWRBrand ?? false
+    }
+
+    private func showMinimizedPresentIcon() {
+        if isCurrentPresentationGwr {
+            showPageScopedPresentIcon()
+        } else {
+            showMinimizedBadgeOverlay()
+        }
+    }
+
+    private func showPageScopedPresentIcon() {
+#if canImport(UIKit)
+        guard isPresentIconEnabledForCurrentPresentation else { return }
+        DelightPageScopedPresentIcon.show(theme: minimizedBadgeTheme(), onTap: { [weak self] in
+            self?.expandFromMinimized()
+        }, onPageLeft: { [weak self] in
+            self?.retirePresentIconForPageLeave()
+        })
+#endif
+    }
+
     private func showMinimizedBadgeOverlay() {
 #if canImport(UIKit)
         guard isPresentIconEnabledForCurrentPresentation else { return }
@@ -561,6 +625,7 @@ final class DelightPopupController: ObservableObject {
     private func hideMinimizedBadgeOverlay() {
 #if canImport(UIKit)
         DelightMinimizedBadgeOverlay.hide()
+        DelightPageScopedPresentIcon.hide(intentional: true)
 #endif
     }
 

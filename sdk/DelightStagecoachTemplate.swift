@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import SwiftUI
 import UIKit
 import SafariServices
@@ -808,3 +809,4 @@ private extension String {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
+#endif

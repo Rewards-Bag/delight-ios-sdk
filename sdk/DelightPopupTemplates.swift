@@ -32,6 +32,7 @@ enum DelightTemplateRegistry {
                 onDismiss: onDismiss
             )
         case DelightTemplateID.gwrModal:
+#if canImport(UIKit)
             DelightGWRTemplate(
                 config: config,
                 theme: theme,
@@ -43,7 +44,11 @@ enum DelightTemplateRegistry {
                 currentRewardIndex: currentRewardIndex,
                 claimedRewardIds: claimedRewardIds
             )
+#else
+            EmptyView()
+#endif
         default:
+#if canImport(UIKit)
             DelightStagecoachTemplate(
                 config: config,
                 theme: theme,
@@ -52,6 +57,9 @@ enum DelightTemplateRegistry {
                 onPrimary: onPrimary,
                 onDismiss: onDismiss
             )
+#else
+            EmptyView()
+#endif
         }
     }
 }

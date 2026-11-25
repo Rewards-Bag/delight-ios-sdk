@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import SwiftUI
 import UIKit
 import SafariServices
@@ -37,8 +38,6 @@ struct DelightGWRTemplate: View {
         let closeButtonSize = min(CGFloat(config.closeButtonSize), 36)
         let closeButtonIconSize = min(CGFloat(config.closeButtonIconSize), 16)
         let closeButtonCornerRadius = CGFloat(config.closeButtonCornerRadius)
-        let widgetImageObjectFit = config.widgetImageObjectFit
-        let heroBannerHeight: CGFloat = 168
 
         ZStack {
             theme.overlay
@@ -54,11 +53,7 @@ struct DelightGWRTemplate: View {
                     closeButtonCornerRadius: max(8, closeButtonCornerRadius)
                 )
 
-                heroBanner(
-                    reward: reward,
-                    height: heroBannerHeight,
-                    objectFit: widgetImageObjectFit
-                )
+                heroBanner(reward: reward)
 
                 VStack(spacing: 10) {
                     if config.showHeadline {
@@ -155,10 +150,12 @@ struct DelightGWRTemplate: View {
                     }
                 }
                 .padding(.bottom, max(10, keyWindowBottomSafeAreaInset - 18))
+                .frame(maxWidth: .infinity)
                 .background(Color.white)
             }
             .frame(maxWidth: .infinity)
-            .background(Color.white)
+            .ignoresSafeArea(edges: .top)
+            .compositingGroup()
             .clipShape(RoundedCorner(radius: max(theme.radius, 16), corners: [.topLeft, .topRight]))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
@@ -252,42 +249,47 @@ struct DelightGWRTemplate: View {
         .padding(.trailing, 8)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, minHeight: 40)
-        .clipped()
         .background(theme.primary)
+        .clipShape(RoundedCorner(radius: max(theme.radius, 16), corners: [.topLeft, .topRight]))
     }
 
     @ViewBuilder
     private func heroBanner(
-        reward: DelightPopupRewardDTO?,
-        height: CGFloat,
-        objectFit: String
+        reward: DelightPopupRewardDTO?
     ) -> some View {
-        GeometryReader { geo in
-            ZStack {
-                if let imageUrl = reward?.postPopupMobileImage ?? reward?.postPopupWebImage,
-                   let imageURL = URL(string: imageUrl) {
-                    if imageURL.pathExtension.lowercased() == "svg" {
-                        SVGRemoteImageView(url: imageURL, objectFit: cssObjectFit(from: objectFit))
-                            .id(imageURL)
-                    } else {
-                        RemoteRasterImageView(
-                            url: imageURL,
-                            contentMode: contentMode(from: objectFit)
-                        ) {
+        Color.clear
+            .aspectRatio(1080.0 / 265.0, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .overlay(
+                GeometryReader { geo in
+                    ZStack {
+                        if let imageUrl = reward?.postPopupMobileImage ?? reward?.postPopupWebImage,
+                           let imageURL = URL(string: imageUrl) {
+                            if imageURL.pathExtension.lowercased() == "svg" {
+                                SVGRemoteImageView(url: imageURL, objectFit: "cover")
+                                    .frame(width: geo.size.width, height: geo.size.height)
+                                    .clipped()
+                                    .id(imageURL)
+                            } else {
+                                RemoteRasterImageView(
+                                    url: imageURL,
+                                    contentMode: .fill
+                                ) {
+                                    imagePlaceholder
+                                }
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .clipped()
+                                .id(imageURL)
+                            }
+                        } else {
                             imagePlaceholder
                         }
-                        .id(imageURL)
                     }
-                } else {
-                    imagePlaceholder
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
                 }
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
+            )
             .clipped()
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .clipped()
     }
 
     private func rewardClaimKey(_ reward: DelightPopupRewardDTO?, index: Int) -> String {
@@ -505,25 +507,6 @@ struct DelightGWRTemplate: View {
         max(0, (CGFloat(lineHeight) * fontSize) - fontSize)
     }
 
-    private func contentMode(from objectFit: String) -> ContentMode {
-        objectFit == "cover" ? .fill : .fit
-    }
-
-    private func cssObjectFit(from objectFit: String) -> String {
-        switch objectFit {
-        case "contain":
-            return "contain"
-        case "fill":
-            return "fill"
-        case "none":
-            return "none"
-        case "scale-down":
-            return "scale-down"
-        default:
-            return "cover"
-        }
-    }
-
     private func openCTAUrl(_ rawUrl: String?, completion: @escaping () -> Void) {
         guard let url = resolvedCTAUrl(from: rawUrl) else {
             completion()
@@ -596,10 +579,16 @@ private struct RemoteRasterImageView<Placeholder: View>: View {
                         .renderingMode(.template)
                         .foregroundColor(templateTint)
                         .aspectRatio(contentMode: contentMode)
+                } else if contentMode == .fill {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
                 } else {
                     Image(uiImage: image)
                         .resizable()
-                        .aspectRatio(contentMode: contentMode)
+                        .aspectRatio(contentMode: .fit)
                 }
             } else {
                 placeholder()
@@ -699,3 +688,4 @@ private extension String {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
+#endif

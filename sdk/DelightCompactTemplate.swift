@@ -19,7 +19,11 @@ struct DelightCompactTemplate: View {
             if let subtitle = popupLocale?.orderLine {
                 Text(subtitle)
                     .font(.footnote)
+#if canImport(UIKit)
                     .foregroundColor(Color(UIColor.secondaryLabel))
+#else
+                    .foregroundColor(.secondary)
+#endif
                     .multilineTextAlignment(.center)
             }
 
@@ -46,10 +50,14 @@ struct DelightCompactTemplate: View {
 
 private struct DelightCompactSheetDetentModifier: ViewModifier {
     func body(content: Content) -> some View {
+#if os(iOS)
         if #available(iOS 16.0, *) {
             content.presentationDetents([.height(260)])
         } else {
             content
         }
+#else
+        content
+#endif
     }
 }

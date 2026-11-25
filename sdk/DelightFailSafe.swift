@@ -80,6 +80,16 @@ enum DelightHostCallbacks {
         guard let callback else { return }
         DelightFailSafe.run({ callback() } as () throws -> Void)
     }
+
+    static func invokeOverlayMinimised(_ callback: ((String?) -> Void)?, rewardId: String?) {
+        guard let callback else { return }
+        DelightFailSafe.run({ callback(rewardId) } as () throws -> Void)
+    }
+
+    static func invokeGiftIconTapped(_ callback: ((String?) -> Void)?, rewardId: String?) {
+        guard let callback else { return }
+        DelightFailSafe.run({ callback(rewardId) } as () throws -> Void)
+    }
 }
 
 enum DelightFailSafeLog {
