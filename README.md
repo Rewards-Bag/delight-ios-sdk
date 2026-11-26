@@ -9,6 +9,7 @@ GWR only. Stagecoach is unchanged.
 - A reward reopened from the gift icon can be minimised again, as many times as the customer wants. The gift icon stays on that page.
 - The gift icon does not follow the customer to another screen. Leaving the page removes it for that booking, and it does not come back.
 - New callbacks, same names as Android: `onOverlayMinimised(rewardId)` and `onGiftIconTapped(rewardId)`.
+- rewardId is now a non-optional String in all callbacks.
 - Fail-safe behaviour is unchanged. Taps outside the icon are not blocked, the host does not wait on a Delight spinner, and `onError` is still not called.
 
 ## Requirements
