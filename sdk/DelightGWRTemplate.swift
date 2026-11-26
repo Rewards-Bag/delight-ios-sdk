@@ -9,7 +9,7 @@ struct DelightGWRTemplate: View {
     let theme: DelightPopupTheme
     var closeButtonAction: DelightPopupCloseButtonAction = .minimize
     let onMinimize: () -> Void
-    let onPrimary: (String?) -> Void
+    let onPrimary: (String) -> Void
     let onDismiss: () -> Void
     var onRewardsExhausted: () -> Void = {}
     @Binding var currentRewardIndex: Int
@@ -86,7 +86,7 @@ struct DelightGWRTemplate: View {
                                 let claimKey = rewardClaimKey(reward, index: claimedSourceIndex)
                                 openCTAUrl(reward?.ctaUrl) {
                                     claimedRewardIds.insert(claimKey)
-                                    onPrimary(reward?.id)
+                                    onPrimary(reward?.id ?? "")
                                     advanceAfterDismissing(
                                         sourceIndex: claimedSourceIndex,
                                         rewards: allRewards

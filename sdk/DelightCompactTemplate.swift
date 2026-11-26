@@ -3,7 +3,7 @@ import SwiftUI
 struct DelightCompactTemplate: View {
     let config: DelightConfigDTO
     let theme: DelightPopupTheme
-    let onPrimary: (String?) -> Void
+    let onPrimary: (String) -> Void
     let onDismiss: () -> Void
 
     var body: some View {
@@ -28,7 +28,7 @@ struct DelightCompactTemplate: View {
             }
 
             Button(rewardLocale?.cta ?? popupLocale?.cta ?? "Continue") {
-                onPrimary(reward?.id)
+                onPrimary(reward?.id ?? "")
             }
             .buttonStyle(PlainButtonStyle())
             .foregroundColor(.white)

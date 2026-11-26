@@ -17,7 +17,7 @@ enum DelightTemplateRegistry {
         theme: DelightPopupTheme,
         closeButtonAction: DelightPopupCloseButtonAction = .minimize,
         onMinimize: @escaping () -> Void = {},
-        onPrimary: @escaping (String?) -> Void,
+        onPrimary: @escaping (String) -> Void,
         onDismiss: @escaping () -> Void,
         onRewardsExhausted: @escaping () -> Void = {},
         currentRewardIndex: Binding<Int> = .constant(0),

@@ -9,7 +9,7 @@ struct DelightStagecoachTemplate: View {
     let theme: DelightPopupTheme
     var closeButtonAction: DelightPopupCloseButtonAction = .minimize
     let onMinimize: () -> Void
-    let onPrimary: (String?) -> Void
+    let onPrimary: (String) -> Void
     let onDismiss: () -> Void
     @Environment(\.openURL) private var openURL
     @State private var currentRewardIndex = 0
@@ -205,7 +205,7 @@ struct DelightStagecoachTemplate: View {
                             HStack(spacing: 0) {
                                 Button {
                                     openCTAUrl(reward?.ctaUrl) {
-                                        onPrimary(reward?.id)
+                                        onPrimary(reward?.id ?? "")
                                     }
                                 } label: {
                                     Text(rewardLocale?.cta ?? popupLocale?.cta ?? "Claim now")

@@ -183,7 +183,7 @@ final class DelightPopupController: ObservableObject {
         isPresented = false
         if config.isGWRBrand {
             closeButtonShowsDismiss = false
-            DelightHostCallbacks.invokeOverlayMinimised(callbacks.onOverlayMinimised, rewardId: rewardId)
+            DelightHostCallbacks.invokeOverlayMinimised(callbacks.onOverlayMinimised, rewardId: rewardId ?? "")
         }
         showMinimizedPresentIcon()
         persistSessionSnapshot()
@@ -195,7 +195,7 @@ final class DelightPopupController: ObservableObject {
         guard case .ready(let config, _, _) = state, config.isPresentIconEnabled else { return }
         let rewardId = visibleRewardId(in: config)
         if config.isGWRBrand {
-            DelightHostCallbacks.invokeGiftIconTapped(callbacks.onGiftIconTapped, rewardId: rewardId)
+            DelightHostCallbacks.invokeGiftIconTapped(callbacks.onGiftIconTapped, rewardId: rewardId ?? "")
         }
         hideMinimizedBadgeOverlay()
         closeButtonShowsDismiss = !config.isGWRBrand

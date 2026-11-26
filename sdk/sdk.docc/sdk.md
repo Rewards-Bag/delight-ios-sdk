@@ -80,11 +80,11 @@ All ``DelightRequestPayload`` fields are optional. Pass `ticketTypes` only when 
                    firstName:nil
                     lastName:nil
                  ticketTypes:nil
-                onImpression:^(NSString * _Nullable rewardId) {}
-              onPrimaryClick:^(NSString * _Nullable rewardId) {}
+                onImpression:^(NSString * _Nonnull rewardId) {}
+              onPrimaryClick:^(NSString * _Nonnull rewardId) {}
                    onDismiss:^{}
-         onOverlayMinimised:^(NSString * _Nullable rewardId) {}
-           onGiftIconTapped:^(NSString * _Nullable rewardId) {}
+         onOverlayMinimised:^(NSString * _Nonnull rewardId) {}
+           onGiftIconTapped:^(NSString * _Nonnull rewardId) {}
                       onError:^(NSString * message) {}];
 ```
 

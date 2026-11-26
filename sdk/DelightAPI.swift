@@ -26,22 +26,22 @@ public struct DelightRequestPayload {
 }
 
 public struct DelightCallbacks {
-    public var onImpression: ((String?) -> Void)?
-    public var onPrimaryClick: ((String?) -> Void)?
+    public var onImpression: ((String) -> Void)?
+    public var onPrimaryClick: ((String) -> Void)?
     public var onDismiss: (() -> Void)?
     public var onError: ((String) -> Void)?
     /// GWR: overlay minimised. Passes the reward that was on screen.
-    public var onOverlayMinimised: ((String?) -> Void)?
+    public var onOverlayMinimised: ((String) -> Void)?
     /// GWR: gift icon tapped. Passes the reward the icon will reopen.
-    public var onGiftIconTapped: ((String?) -> Void)?
+    public var onGiftIconTapped: ((String) -> Void)?
 
     public init(
-        onImpression: ((String?) -> Void)? = nil,
-        onPrimaryClick: ((String?) -> Void)? = nil,
+        onImpression: ((String) -> Void)? = nil,
+        onPrimaryClick: ((String) -> Void)? = nil,
         onDismiss: (() -> Void)? = nil,
         onError: ((String) -> Void)? = nil,
-        onOverlayMinimised: ((String?) -> Void)? = nil,
-        onGiftIconTapped: ((String?) -> Void)? = nil
+        onOverlayMinimised: ((String) -> Void)? = nil,
+        onGiftIconTapped: ((String) -> Void)? = nil
     ) {
         self.onImpression = onImpression
         self.onPrimaryClick = onPrimaryClick

@@ -107,11 +107,11 @@ public final class DelightObjC: NSObject {
         firstName: String?,
         lastName: String?,
         ticketTypes: [String]?,
-        onImpression: ((NSString?) -> Void)?,
-        onPrimaryClick: ((NSString?) -> Void)?,
+        onImpression: ((NSString) -> Void)?,
+        onPrimaryClick: ((NSString) -> Void)?,
         onDismiss: (() -> Void)?,
-        onOverlayMinimised: ((NSString?) -> Void)?,
-        onGiftIconTapped: ((NSString?) -> Void)?,
+        onOverlayMinimised: ((NSString) -> Void)?,
+        onGiftIconTapped: ((NSString) -> Void)?,
         onError: ((NSString) -> Void)?
     ) {
         let payload = DelightRequestPayload(
@@ -125,10 +125,10 @@ public final class DelightObjC: NSObject {
 
         let callbacks = DelightCallbacks(
             onImpression: { rewardId in
-                onImpression?(rewardId as NSString?)
+                onImpression?(rewardId as NSString)
             },
             onPrimaryClick: { rewardId in
-                onPrimaryClick?(rewardId as NSString?)
+                onPrimaryClick?(rewardId as NSString)
             },
             onDismiss: {
                 onDismiss?()
@@ -137,10 +137,10 @@ public final class DelightObjC: NSObject {
                 onError?(message as NSString)
             },
             onOverlayMinimised: { rewardId in
-                onOverlayMinimised?(rewardId as NSString?)
+                onOverlayMinimised?(rewardId as NSString)
             },
             onGiftIconTapped: { rewardId in
-                onGiftIconTapped?(rewardId as NSString?)
+                onGiftIconTapped?(rewardId as NSString)
             }
         )
 
@@ -158,8 +158,8 @@ public final class DelightObjC: NSObject {
         firstName: String?,
         lastName: String?,
         ticketTypes: [String]?,
-        onImpression: ((NSString?) -> Void)?,
-        onPrimaryClick: ((NSString?) -> Void)?,
+        onImpression: ((NSString) -> Void)?,
+        onPrimaryClick: ((NSString) -> Void)?,
         onDismiss: (() -> Void)?,
         onError: ((NSString) -> Void)?
     ) {
@@ -188,8 +188,8 @@ public final class DelightObjC: NSObject {
         firstName: String?,
         lastName: String?,
         ticketTypes: [String]?,
-        onImpression: ((NSString?) -> Void)?,
-        onPrimaryClick: ((NSString?) -> Void)?,
+        onImpression: ((NSString) -> Void)?,
+        onPrimaryClick: ((NSString) -> Void)?,
         onDismiss: (() -> Void)?,
         onError: ((NSString) -> Void)?
     ) {

@@ -150,10 +150,10 @@ All arguments are optional, including `ticketTypes`.
                    firstName:@"Jane"
                     lastName:@"Doe"
                  ticketTypes:nil
-                onImpression:^(NSString * _Nullable rewardId) {
+                onImpression:^(NSString * _Nonnull rewardId) {
     NSLog(@"Impression: %@", rewardId);
 }
-              onPrimaryClick:^(NSString * _Nullable rewardId) {
+              onPrimaryClick:^(NSString * _Nonnull rewardId) {
     NSLog(@"Primary click: %@", rewardId);
 }
                    onDismiss:^{
@@ -177,10 +177,10 @@ GWR can pass the two extra callbacks. The selector adds `onOverlayMinimised` and
                 onImpression:nil
               onPrimaryClick:nil
                    onDismiss:nil
-         onOverlayMinimised:^(NSString * _Nullable rewardId) {
+         onOverlayMinimised:^(NSString * _Nonnull rewardId) {
     NSLog(@"Overlay minimised: %@", rewardId);
 }
-           onGiftIconTapped:^(NSString * _Nullable rewardId) {
+           onGiftIconTapped:^(NSString * _Nonnull rewardId) {
     NSLog(@"Gift icon tapped: %@", rewardId);
 }
                       onError:nil];

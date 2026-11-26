@@ -119,8 +119,8 @@ final class DelightGwrPresentIconTests: XCTestCase {
         controller.callbacks = DelightCallbacks(
             onDismiss: { dismissed.value = true },
             onError: { errors.values.append($0) },
-            onOverlayMinimised: { minimised.values.append($0 ?? "") },
-            onGiftIconTapped: { tapped.values.append($0 ?? "") }
+            onOverlayMinimised: { minimised.values.append($0) },
+            onGiftIconTapped: { tapped.values.append($0) }
         )
         controller.config = config
         controller.state = .ready(config, DelightPopupTheme.fromBrandTheme(nil), "reward-42")
