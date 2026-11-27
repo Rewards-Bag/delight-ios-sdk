@@ -3,7 +3,7 @@ import SwiftUI
 struct DelightCompactTemplate: View {
     let config: DelightConfigDTO
     let theme: DelightPopupTheme
-    let onPrimary: (String?) -> Void
+    let onPrimary: (String) -> Void
     let onDismiss: () -> Void
 
     var body: some View {
@@ -19,12 +19,16 @@ struct DelightCompactTemplate: View {
             if let subtitle = popupLocale?.orderLine {
                 Text(subtitle)
                     .font(.footnote)
+#if canImport(UIKit)
                     .foregroundColor(Color(UIColor.secondaryLabel))
+#else
+                    .foregroundColor(.secondary)
+#endif
                     .multilineTextAlignment(.center)
             }
 
             Button(rewardLocale?.cta ?? popupLocale?.cta ?? "Continue") {
-                onPrimary(reward?.id)
+                onPrimary(reward?.id ?? "")
             }
             .buttonStyle(PlainButtonStyle())
             .foregroundColor(.white)
@@ -46,10 +50,14 @@ struct DelightCompactTemplate: View {
 
 private struct DelightCompactSheetDetentModifier: ViewModifier {
     func body(content: Content) -> some View {
+#if os(iOS)
         if #available(iOS 16.0, *) {
             content.presentationDetents([.height(260)])
         } else {
             content
         }
+#else
+        content
+#endif
     }
 }

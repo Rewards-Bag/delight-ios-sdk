@@ -66,19 +66,34 @@ enum DelightSessionGuard {
 
 /// Host callbacks must never take down the host app if the partner code throws.
 enum DelightHostCallbacks {
-    static func invokeImpression(_ callback: ((String?) -> Void)?, rewardId: String?) {
-        guard let callback else { return }
+    static func invokeImpression(_ callback: ((String) -> Void)?, rewardId: String) {
+        guard let callback, let rewardId = nonEmpty(rewardId) else { return }
         DelightFailSafe.run({ callback(rewardId) } as () throws -> Void)
     }
 
-    static func invokePrimaryClick(_ callback: ((String?) -> Void)?, rewardId: String?) {
-        guard let callback else { return }
+    static func invokePrimaryClick(_ callback: ((String) -> Void)?, rewardId: String) {
+        guard let callback, let rewardId = nonEmpty(rewardId) else { return }
         DelightFailSafe.run({ callback(rewardId) } as () throws -> Void)
     }
 
     static func invokeDismiss(_ callback: (() -> Void)?) {
         guard let callback else { return }
         DelightFailSafe.run({ callback() } as () throws -> Void)
+    }
+
+    static func invokeOverlayMinimised(_ callback: ((String) -> Void)?, rewardId: String) {
+        guard let callback, let rewardId = nonEmpty(rewardId) else { return }
+        DelightFailSafe.run({ callback(rewardId) } as () throws -> Void)
+    }
+
+    static func invokeGiftIconTapped(_ callback: ((String) -> Void)?, rewardId: String) {
+        guard let callback, let rewardId = nonEmpty(rewardId) else { return }
+        DelightFailSafe.run({ callback(rewardId) } as () throws -> Void)
+    }
+
+    private static func nonEmpty(_ rewardId: String) -> String? {
+        let trimmed = rewardId.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

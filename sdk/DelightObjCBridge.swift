@@ -98,7 +98,8 @@ public final class DelightObjC: NSObject {
     }
 
     /// Objective-C bridge for showing a reward popup.
-    @objc(showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onError:)
+    /// GWR analytics: `onOverlayMinimised` and `onGiftIconTapped` each receive the reward id.
+    @objc(showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onOverlayMinimised:onGiftIconTapped:onError:)
     public static func showRewardPopup(
         _ orderId: String?,
         email: String?,
@@ -106,9 +107,11 @@ public final class DelightObjC: NSObject {
         firstName: String?,
         lastName: String?,
         ticketTypes: [String]?,
-        onImpression: ((NSString?) -> Void)?,
-        onPrimaryClick: ((NSString?) -> Void)?,
+        onImpression: ((NSString) -> Void)?,
+        onPrimaryClick: ((NSString) -> Void)?,
         onDismiss: (() -> Void)?,
+        onOverlayMinimised: ((NSString) -> Void)?,
+        onGiftIconTapped: ((NSString) -> Void)?,
         onError: ((NSString) -> Void)?
     ) {
         let payload = DelightRequestPayload(
@@ -122,22 +125,58 @@ public final class DelightObjC: NSObject {
 
         let callbacks = DelightCallbacks(
             onImpression: { rewardId in
-                onImpression?(rewardId as NSString?)
+                onImpression?(rewardId as NSString)
             },
             onPrimaryClick: { rewardId in
-                onPrimaryClick?(rewardId as NSString?)
+                onPrimaryClick?(rewardId as NSString)
             },
             onDismiss: {
                 onDismiss?()
             },
             onError: { message in
                 onError?(message as NSString)
+            },
+            onOverlayMinimised: { rewardId in
+                onOverlayMinimised?(rewardId as NSString)
+            },
+            onGiftIconTapped: { rewardId in
+                onGiftIconTapped?(rewardId as NSString)
             }
         )
 
         Task { @MainActor in
             Delight.showRewardPopup(payload, callbacks: callbacks)
         }
+    }
+
+    /// Objective-C bridge for showing a reward popup.
+    @objc(showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onError:)
+    public static func showRewardPopup(
+        _ orderId: String?,
+        email: String?,
+        userToken: String?,
+        firstName: String?,
+        lastName: String?,
+        ticketTypes: [String]?,
+        onImpression: ((NSString) -> Void)?,
+        onPrimaryClick: ((NSString) -> Void)?,
+        onDismiss: (() -> Void)?,
+        onError: ((NSString) -> Void)?
+    ) {
+        showRewardPopup(
+            orderId,
+            email: email,
+            userToken: userToken,
+            firstName: firstName,
+            lastName: lastName,
+            ticketTypes: ticketTypes,
+            onImpression: onImpression,
+            onPrimaryClick: onPrimaryClick,
+            onDismiss: onDismiss,
+            onOverlayMinimised: nil,
+            onGiftIconTapped: nil,
+            onError: onError
+        )
     }
 
     @available(*, deprecated, renamed: "showRewardPopup(_:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onError:)")
@@ -149,8 +188,8 @@ public final class DelightObjC: NSObject {
         firstName: String?,
         lastName: String?,
         ticketTypes: [String]?,
-        onImpression: ((NSString?) -> Void)?,
-        onPrimaryClick: ((NSString?) -> Void)?,
+        onImpression: ((NSString) -> Void)?,
+        onPrimaryClick: ((NSString) -> Void)?,
         onDismiss: (() -> Void)?,
         onError: ((NSString) -> Void)?
     ) {

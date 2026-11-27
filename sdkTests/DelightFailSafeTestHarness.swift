@@ -15,7 +15,7 @@ enum DelightFailSafeReport {
         let expectation: String
     }
 
-    static let sdkVersion = "1.1.2"
+    static let sdkVersion = "1.0.11"
     static let harnessDescription = "XCTest + @MainActor; run with xcodebuild test (sdkTests) or swift test --filter DelightFailSafe"
 
     static let catalog: [CaseSpec] = [

@@ -2,6 +2,16 @@
 
 DelightSDK is an iOS SDK for showing post-purchase reward popups. Layout, copy, and eligibility come from the partner CDN config. Local suppression and tracking run on-device.
 
+## 1.0.11
+
+GWR only. Stagecoach is unchanged.
+
+- A reward reopened from the gift icon can be minimised again, as many times as the customer wants. The gift icon stays on that page.
+- The gift icon does not follow the customer to another screen. Leaving the page removes it for that booking, and it does not come back.
+- New callbacks, same names as Android: `onOverlayMinimised(rewardId)` and `onGiftIconTapped(rewardId)`.
+- rewardId is now a non-optional String in all callbacks.
+- Fail-safe behaviour is unchanged. Taps outside the icon are not blocked, the host does not wait on a Delight spinner, and `onError` is still not called.
+
 ## Requirements
 
 - iOS 14+
@@ -20,7 +30,7 @@ DelightSDK is an iOS SDK for showing post-purchase reward popups. Layout, copy, 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Rewards-Bag/delight-ios-sdk.git", exact: "1.0.10")
+    .package(url: "https://github.com/Rewards-Bag/delight-ios-sdk.git", exact: "1.0.11")
 ],
 targets: [
     .target(
@@ -87,6 +97,12 @@ Delight.showRewardPopup(
         },
         onError: { _ in
             // Reserved; the SDK does not surface internal failures to the host.
+        },
+        onOverlayMinimised: { rewardId in
+            print("Overlay minimised:", rewardId ?? "nil")
+        },
+        onGiftIconTapped: { rewardId in
+            print("Gift icon tapped:", rewardId ?? "nil")
         }
     )
 )
@@ -135,10 +151,10 @@ All arguments are optional, including `ticketTypes`.
                    firstName:@"Jane"
                     lastName:@"Doe"
                  ticketTypes:nil
-                onImpression:^(NSString * _Nullable rewardId) {
+                onImpression:^(NSString * _Nonnull rewardId) {
     NSLog(@"Impression: %@", rewardId);
 }
-              onPrimaryClick:^(NSString * _Nullable rewardId) {
+              onPrimaryClick:^(NSString * _Nonnull rewardId) {
     NSLog(@"Primary click: %@", rewardId);
 }
                    onDismiss:^{
@@ -148,6 +164,27 @@ All arguments are optional, including `ticketTypes`.
     // Reserved. The SDK does not call this.
     NSLog(@"Error: %@", message);
 }];
+```
+
+GWR can pass the two extra callbacks. The selector adds `onOverlayMinimised` and `onGiftIconTapped` before `onError`. Each block receives the reward id. The selector above still compiles and passes nil for those callbacks.
+
+```objc
+[DelightObjC showRewardPopup:@"ORDER-123"
+                       email:nil
+                   userToken:nil
+                   firstName:nil
+                    lastName:nil
+                 ticketTypes:nil
+                onImpression:nil
+              onPrimaryClick:nil
+                   onDismiss:nil
+         onOverlayMinimised:^(NSString * _Nonnull rewardId) {
+    NSLog(@"Overlay minimised: %@", rewardId);
+}
+           onGiftIconTapped:^(NSString * _Nonnull rewardId) {
+    NSLog(@"Gift icon tapped: %@", rewardId);
+}
+                      onError:nil];
 ```
 
 ### 4) Dismiss programmatically (optional)
@@ -178,10 +215,19 @@ Template, copy, images, and CTA URLs come from the partner config. The SDK picks
 
 ### Present icon (`popup.enablePresentIcon`)
 
-- `false` — close (X) from first render; no minimize; no floating present icon
-- `true` — minimize (`−`) on first render; reopen from the present icon shows X; X dismisses fully
+Stagecoach, and any host other than GWR:
 
-Minimize does not record an ignore. Reopening from the icon restores the same session (including the current carousel slide and already-claimed rewards).
+- `false` — close (X) from first render; no minimise; no gift icon
+- `true` — minimise (`−`) on first render; reopen from the gift icon shows X; X dismisses fully. The icon is a window above later screens
+
+GWR:
+
+- `false` — close (X) from first render; no minimise; no gift icon
+- `true` — minimise as many times as the customer wants. Reopening keeps minimise. The gift icon is added to the page that showed the reward. Navigating away removes it for that booking, and it does not come back
+- `onOverlayMinimised(rewardId)` fires when the overlay is minimised. This is not `onDismiss`
+- `onGiftIconTapped(rewardId)` fires when the gift icon is tapped, with the reward that will reopen
+
+Minimise does not record an ignore. Reopening from the icon restores the same session (including the current carousel slide and already-claimed rewards). The icon only receives taps inside its own bounds.
 
 ### Rewards shown
 
@@ -221,7 +267,7 @@ The SDK is designed so a bad CDN deploy or internal bug never breaks the host ap
 - **Deferred UI work** uses a presentation epoch so async build steps cannot update UI after dismiss; badge pulse uses a cancellable `Task` instead of `asyncAfter`.
 - **Pre-render validation** (`DelightConfigValidator`) requires enabled popup, supported template, and each visible reward to have a non-empty id plus headline or HTTPS image URL (and valid optional URLs).
 
-Host callbacks (`onImpression`, `onPrimaryClick`, `onDismiss`) are invoked inside `DelightHostCallbacks` so a throw in host code is swallowed. `onError` is reserved and is never called.
+Host callbacks (`onImpression`, `onPrimaryClick`, `onDismiss`, `onOverlayMinimised`, `onGiftIconTapped`) are invoked inside `DelightHostCallbacks` so a throw in host code is swallowed. `onError` is reserved and is never called. `onOverlayMinimised` and `onGiftIconTapped` run for GWR only.
 
 The SDK draws no popup while it is fetching. The popup window is created only after a reward is ready, and the SDK removes that window itself. Do not show a host loading overlay that waits for `onError` to clear it. `DelightPopupPresenter` is a zero-size hook, not a loading screen.
 
@@ -239,9 +285,12 @@ The SDK draws no popup while it is fetching. The popup window is created only af
 | Broken image URL | Popup still opens. The image area stays empty | `onImpression` |
 | Dismiss while the config is still loading | Popup never appears. A late response is ignored | `onDismiss` |
 | App returns to foreground with the popup open | Same popup restored | No second `onImpression` for a reward already seen |
-| Minimized, present icon on | Popup window removed. Gift icon only. Other taps reach the app | None until the icon is opened again |
+| Minimized, present icon on (Stagecoach and other non-GWR hosts) | Popup window removed. Gift icon only. Other taps reach the app | None until the icon is opened again |
+| Overlay minimised (GWR) | Popup removed. Gift icon stays on that page. Other taps reach the app | `onOverlayMinimised` with the reward id |
+| Gift icon tapped (GWR) | Same reward opens. Minimise stays available | `onGiftIconTapped` with the reward id |
+| Customer leaves the page while the GWR gift icon is showing | Icon removed. It does not return for that booking | None |
 
-What the host should do: keep `DelightPopupPresenter` mounted, call `showRewardPopup` after a purchase, and handle `onImpression`, `onPrimaryClick`, and `onDismiss` if you need them. Do not gate ticket activation or a loading spinner on any Delight callback.
+What the host should do: keep `DelightPopupPresenter` mounted, call `showRewardPopup` after a purchase, and handle `onImpression`, `onPrimaryClick`, `onDismiss`, and for GWR `onOverlayMinimised` and `onGiftIconTapped` if you need them. Do not gate ticket activation or a loading spinner on any Delight callback.
 
 ## QA / Local Testing
 

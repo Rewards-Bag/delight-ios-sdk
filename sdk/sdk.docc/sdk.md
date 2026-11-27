@@ -80,9 +80,11 @@ All ``DelightRequestPayload`` fields are optional. Pass `ticketTypes` only when 
                    firstName:nil
                     lastName:nil
                  ticketTypes:nil
-                onImpression:^(NSString * _Nullable rewardId) {}
-              onPrimaryClick:^(NSString * _Nullable rewardId) {}
+                onImpression:^(NSString * _Nonnull rewardId) {}
+              onPrimaryClick:^(NSString * _Nonnull rewardId) {}
                    onDismiss:^{}
+         onOverlayMinimised:^(NSString * _Nonnull rewardId) {}
+           onGiftIconTapped:^(NSString * _Nonnull rewardId) {}
                       onError:^(NSString * message) {}];
 ```
 
@@ -94,10 +96,19 @@ Template, copy, images, and CTA URLs come from the partner config.
 
 ### Present icon (`popup.enablePresentIcon`)
 
-- `false` — X-only popup from first render; dismisses fully (no minimize, no floating icon)
-- `true` — minimize to present icon; reopened popup shows X; X dismisses entirely
+Stagecoach, and any host other than GWR:
 
-Minimize does not record an ignore. Reopening from the icon restores the same session, including the current carousel slide.
+- `false` — X-only popup from first render; dismisses fully (no minimise, no gift icon)
+- `true` — minimise to the gift icon; reopened popup shows X; X dismisses entirely
+
+GWR:
+
+- `false` — X-only popup from first render
+- `true` — minimise as many times as the customer wants. Reopening keeps minimise. The gift icon stays on the page that showed the reward. Leaving that page removes the icon for that booking, and it does not come back
+- ``DelightCallbacks/onOverlayMinimised`` fires with the reward id when the overlay is minimised
+- ``DelightCallbacks/onGiftIconTapped`` fires with the reward id when the gift icon is tapped
+
+Minimise does not record an ignore. Reopening from the icon restores the same session, including the current carousel slide. These two callbacks use the same names on Android.
 
 ### Rewards and claim
 
@@ -165,5 +176,6 @@ If the API is unreachable, returns an error, or configuration is invalid, the SD
 
 - Initialize: ``Delight/initialize(brandName:locale:cdnBaseURL:useBundledConfig:ignoreDailyCooldownHours:consentGranted:)`` ↔ `+[DelightObjC initialize:locale:ignoreDailyCooldownHours:completion:]`
 - Reset daily slots: ``Delight/resetDailySuppressionState()`` ↔ `+[DelightObjC resetDailySuppressionState]`
-- Show popup: ``Delight/showRewardPopup(_:callbacks:)`` ↔ `+[DelightObjC showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onError:]`
+- Show popup: ``Delight/showRewardPopup(_:callbacks:)`` ↔ `+[DelightObjC showRewardPopup:email:userToken:firstName:lastName:ticketTypes:onImpression:onPrimaryClick:onDismiss:onOverlayMinimised:onGiftIconTapped:onError:]`
+- The previous Objective-C selector, without `onOverlayMinimised` and `onGiftIconTapped`, still shows the popup. Those callbacks are nil.
 - Dismiss: ``Delight/dismiss()`` ↔ `+[DelightObjC dismiss]`
